@@ -50,14 +50,14 @@ async def custom_site():
             tar.close()
 
     # preloader will change to work dir and prepend it to sys.path
-    platform.run_main(PyConfig, loaderhome= appdir / "assets", loadermain=None)
+    platform.run_main(PyConfig, loaderhome= appdir, loadermain=None)
 
 
     # wait preloading complete : that includes images and wasm compilation of bundled modules
     while embed.counter()<0:
         await asyncio.sleep(.1)
 
-    main = appdir / "assets" / "main.py"
+    main = appdir / "main.py"
 
     # TODO: test for window.webkitAudioContext and block aio loop until gesture if accessing media manager play
     # before a gesture is recorded ( touch or click )
