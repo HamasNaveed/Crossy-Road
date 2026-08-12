@@ -6,6 +6,7 @@ import os
 import csv
 import math
 import datetime
+import asyncio
 
 # --- Config & Constants ---
 pygame.init()
@@ -607,7 +608,7 @@ def draw_street_decor(surface, row, sy):
             x += dash_w + gap
 
 # --- Main Game ---
-def main():
+async def main():
     game = GameInfo()
 
     char_idx = next(i for i, c in enumerate(CHARACTERS) if c['id'] == save_state['selectedChar'])
@@ -949,9 +950,10 @@ def main():
                 draw_text(screen, export_msg, font_tiny, C_MANGO, WIDTH // 2, HEIGHT - 70, 'center')
 
         pygame.display.flip()
+        await asyncio.sleep(0)
 
     pygame.quit()
     sys.exit()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
