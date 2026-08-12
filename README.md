@@ -1,43 +1,25 @@
-# Hop Rush 🐔
+# Hop Rush — 3D Crossy Road Clone 🏃‍♂️🚗
 
-A Crossy Road–style endless hopper, built with plain HTML/CSS/JS and [Three.js](https://threejs.org/) (loaded from a CDN, no build step required).
+A 3D HTML5 Canvas Arcade game inspired by Crossy Road! Navigate through bustling highways, fast tracks, and rapid rivers while dodging vehicles and collecting mangoes.
 
-Hop across roads and rivers, dodge traffic, ride logs, and see how far you can get. Your best score is saved locally in the browser.
+Live Demo: **[https://hamasnaveed.github.io/Crossy-Road/](https://hamasnaveed.github.io/Crossy-Road/)**
 
-## Controls
-- **Desktop:** Arrow keys or WASD
-- **Mobile:** Swipe, or use the on-screen D-pad
+## Features 🌟
+- **Dynamic 3D Environment**: Isometric low-poly styled visuals using standard HTML5 Canvas 2D context.
+- **Multiple Characters**: Play as Chicken, Frog, Duck, and more!
+- **Power-ups & Collectibles**: Collect mangoes and trigger invincible rush modes.
+- **Responsive Controls**: Full support for Keyboard (Arrow Keys / WASD), Touch Swipe, and On-Screen D-Pad buttons.
+- **Sound Effects**: Procedural Web Audio API sound effects for hops, coin pickup, splashes, and crashes.
+- **High Scores & Local Storage**: Automatically saves high scores and unlocked characters.
 
-## Run locally
+## How to Play 🎮
+- **Up / W / Swipe Up**: Hop Forward
+- **Down / S / Swipe Down**: Hop Back
+- **Left / A / Swipe Left**: Hop Left
+- **Right / D / Swipe Right**: Hop Right
 
-No build tools needed — it's a single static HTML file. Just serve the folder:
-
-```bash
-npx serve .
-# or
-python3 -m http.server 8000
-```
-
-Then open the printed URL in your browser.
-
-## Deploy to Vercel
-
-### Option A — Vercel CLI (fastest)
-```bash
-npm i -g vercel
-cd hop-rush
-vercel
-```
-Follow the prompts (accept the defaults — it's a static site, no build command needed) and Vercel will give you a live URL.
-
-### Option B — GitHub + Vercel dashboard
-1. Push this folder to a new GitHub repo.
-2. Go to [vercel.com/new](https://vercel.com/new), import the repo.
-3. Framework preset: **Other** (static). Leave build command empty, output directory as root (`.`).
-4. Click **Deploy**.
-
-That's it — `index.html` is served as-is with no build step.
-
-## Files
-- `index.html` — the entire game (markup, styles, and game logic)
-- `vercel.json` — minimal Vercel static-hosting config
+## Hosting on GitHub Pages 🚀
+1. Push `index.html` to `main` branch.
+2. Go to **Settings > Pages** on your GitHub repository.
+3. Select **Source: Deploy from a branch** and set branch to **`main` / `/(root)`**.
+4. Save and open the generated link!

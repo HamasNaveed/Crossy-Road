@@ -10,3 +10,4 @@ ENV/
 .vscode/
 .DS_Store
 build/
+*.crdownload
