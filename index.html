@@ -217,7 +217,7 @@
 
     <div id="nameEntry" class="hidden">
       <div class="stat">🎉 New leaderboard score!</div>
-      <input id="nameInput" maxlength="12" placeholder="Your name" />
+      <input id="nameInput" placeholder="Your name" />
       <button id="saveScoreBtn">SAVE</button>
       <div id="savedMsg" class="hidden">Saved to leaderboard!</div>
     </div>
@@ -233,7 +233,7 @@
 
     <button id="playBtn">PLAY</button>
     <button id="leaderboardBtn">🏆 LEADERBOARD</button>
-    <div id="hint">Arrow keys / WASD / swipe / tap the pad<br/>Cross roads, ride logs, don't get squashed 🐸<br/>🥭 Eat mangoes to keep your stamina up — hopping burns it!</div>
+    <div id="hint">Arrow keys / swipe / tap the pad<br/>Cross roads, ride logs, don't get squashed 🐸<br/>🥭 Eat mangoes to keep your stamina up — it drains over time!</div>
   </div>
 </div>
 
@@ -408,8 +408,8 @@
 
   // ---------- stamina ----------
   const STAMINA_MAX = 100;
-  const STAMINA_PER_HOP = 6;
-  const MANGO_RESTORE = 32;
+  const STAMINA_PER_SEC = 4;
+  const MANGO_RESTORE = 5;
   let stamina = STAMINA_MAX;
   let lastDeathReason = 'squashed';
 
@@ -1046,11 +1046,6 @@
 
     if(playerZ > score){ score = playerZ; updateScoreHUD(); }
 
-    // hopping burns stamina — mangoes are the only way to top it back up
-    stamina = Math.max(0, stamina - STAMINA_PER_HOP);
-    updateStaminaHUD();
-    if(stamina<=0){ die('starved'); return; }
-
     ensureRowsAhead();
   }
 
@@ -1185,12 +1180,14 @@
 
   // ---------- input ----------
   const keyMap = {
-    ArrowUp:[0,1], KeyW:[0,1],
-    ArrowDown:[0,-1], KeyS:[0,-1],
-    ArrowLeft:[-1,0], KeyA:[-1,0],
-    ArrowRight:[1,0], KeyD:[1,0],
+    ArrowUp:[0,1],
+    ArrowDown:[0,-1],
+    ArrowLeft:[-1,0],
+    ArrowRight:[1,0],
   };
   window.addEventListener('keydown', (e)=>{
+    const tag = (e.target && e.target.tagName) || '';
+    if(tag==='INPUT' || tag==='TEXTAREA') return; // let the leaderboard name field type freely
     if(keyMap[e.code]){
       e.preventDefault();
       if(!started){ startGame(); }
@@ -1233,7 +1230,7 @@
   document.getElementById('exportCsvBtn').addEventListener('click', exportLeaderboardCSV);
   document.getElementById('saveScoreBtn').addEventListener('click', ()=>{
     const input = document.getElementById('nameInput');
-    const name = (input.value||'Runner').trim().slice(0,12) || 'Runner';
+    const name = (input.value||'Runner').trim() || 'Runner';
     addToLeaderboard(name, score, selectedCharId);
     input.value = '';
     document.getElementById('nameEntry').classList.add('hidden');
@@ -1279,6 +1276,11 @@
         }
         applyEnvironment(next);
       }
+
+      // stamina drains continuously — mangoes are the only way to top it back up
+      stamina = Math.max(0, stamina - STAMINA_PER_SEC*(dt/1000));
+      updateStaminaHUD();
+      if(stamina<=0){ die('starved'); }
     }
 
     // ambient weather effects (run whenever visible, not just mid-run)
