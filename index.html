@@ -1,1594 +1,1366 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Hop Rush — Crossy Road Clone</title>
-  <style>
-    :root {
-      --sky-top: #8fd3ff;
-      --sky-bottom: #cdeeff;
-      --ink: #1b2a2f;
-      --panel: #ffffffee;
-      --accent: #ffb100;
-      --accent-2: #ff5d5d;
-      --grass: #7ec850;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Hop Rush — Crossy Road Clone</title>
+<style>
+  :root{
+    --sky-top:#8fd3ff;
+    --sky-bottom:#cdeeff;
+    --ink:#1b2a2f;
+    --panel:#ffffffee;
+    --accent:#ffb100;
+    --accent-2:#ff5d5d;
+    --grass:#7ec850;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;padding:0;width:100%;height:100%;overflow:hidden;
+    font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;
+    background:linear-gradient(var(--sky-top),var(--sky-bottom));
+    touch-action:none;
+    user-select:none;
+    transition:background 0.8s ease;
+  }
+  .hidden{display:none !important;}
+  #canvas-wrap{position:fixed;inset:0;}
+  canvas{display:block;width:100%;height:100%;}
 
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+  #hud{
+    position:fixed;top:0;left:0;right:0;
+    display:flex;justify-content:space-between;align-items:flex-start;
+    padding:16px 18px;pointer-events:none;z-index:10;
+  }
+  #score{
+    background:var(--panel);
+    padding:8px 18px;border-radius:16px;
+    font-size:22px;font-weight:800;color:var(--ink);
+    box-shadow:0 4px 0 rgba(0,0,0,0.15);
+    letter-spacing:1px;
+  }
+  #best{
+    background:var(--panel);
+    padding:6px 14px;border-radius:14px;
+    font-size:13px;font-weight:700;color:#6b7b80;
+    margin-top:6px;
+  }
+  #staminaWrap{
+    background:var(--panel);
+    padding:7px 12px;border-radius:14px;
+    margin-top:6px;width:150px;
+    box-shadow:0 3px 0 rgba(0,0,0,0.12);
+  }
+  #staminaLabel{
+    font-size:10px;font-weight:800;color:#6b7b80;letter-spacing:1px;
+    margin-bottom:4px;display:flex;justify-content:space-between;
+  }
+  #staminaBarBg{background:#e2e8e6;border-radius:8px;height:10px;overflow:hidden;}
+  #staminaBarFill{
+    background:linear-gradient(90deg,#8ee06b,#4fae4f);
+    height:100%;width:100%;
+    transition:width 0.25s ease, background 0.25s ease;
+  }
+  #title-badge{
+    background:var(--accent);
+    padding:8px 16px;border-radius:16px;
+    font-size:16px;font-weight:800;color:#4a2e00;
+    box-shadow:0 4px 0 rgba(0,0,0,0.15);
+    text-align:right;
+  }
+  #weatherBadge{
+    margin-top:6px;background:var(--panel);padding:5px 12px;border-radius:12px;
+    font-size:12px;font-weight:800;color:var(--ink);text-align:right;
+    box-shadow:0 3px 0 rgba(0,0,0,0.12);
+  }
 
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
-      background: linear-gradient(var(--sky-top), var(--sky-bottom));
-      touch-action: none;
-      user-select: none;
-      transition: background 0.8s ease;
-    }
+  #controls{
+    position:fixed;bottom:0;left:0;right:0;
+    display:flex;justify-content:center;align-items:center;
+    padding:20px;pointer-events:none;z-index:10;
+  }
+  #dpad{
+    display:grid;
+    grid-template-columns:56px 56px 56px;
+    grid-template-rows:56px 56px 56px;
+    gap:6px;
+    pointer-events:auto;
+  }
+  #dpad button{
+    border:none;border-radius:14px;
+    background:var(--panel);
+    box-shadow:0 4px 0 rgba(0,0,0,0.2);
+    font-size:22px;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    active-opacity:0.5;
+  }
+  #dpad button:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,0.2);}
+  #btn-up{grid-column:2;grid-row:1;}
+  #btn-left{grid-column:1;grid-row:2;}
+  #btn-down{grid-column:2;grid-row:2;background:var(--accent);}
+  #btn-right{grid-column:3;grid-row:2;}
+  #dpad .spacer{visibility:hidden;}
 
-    .hidden {
-      display: none !important;
-    }
+  #overlay{
+    position:fixed;inset:0;z-index:20;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(20,30,35,0.55);
+    backdrop-filter:blur(2px);
+  }
+  #overlay.hidden{display:none;}
+  #panel{
+    background:var(--panel);
+    border-radius:22px;
+    padding:28px 26px;
+    width:min(360px,88vw);
+    max-height:88vh;
+    overflow-y:auto;
+    text-align:center;
+    box-shadow:0 10px 0 rgba(0,0,0,0.2);
+  }
+  #panel h1{
+    margin:0 0 4px;font-size:30px;color:var(--ink);
+    letter-spacing:1px;
+  }
+  #panel .sub{color:#6b7b80;font-size:14px;margin-bottom:14px;font-weight:600;}
+  #panel .stat{font-size:16px;color:var(--ink);margin:4px 0;font-weight:700;}
+  #panel .stat span{color:var(--accent-2);font-size:20px;}
 
-    #canvas-wrap {
-      position: fixed;
-      inset: 0;
-    }
+  #charSelect{margin:14px 0;}
+  .sectionLabel{font-size:12px;font-weight:800;color:#6b7b80;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+  #charGrid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .charBtn{border:2px solid transparent;border-radius:12px;background:#f2f6f7;padding:8px 4px;width:62px;cursor:pointer;font-family:inherit;}
+  .charBtn.selected{border-color:var(--accent-2);background:#fff0ea;}
+  .charEmoji{font-size:26px;line-height:1;}
+  .charName{font-size:10px;font-weight:700;color:var(--ink);margin-top:3px;}
 
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
+  #playBtn{
+    margin-top:14px;
+    border:none;border-radius:16px;
+    background:var(--accent-2);color:#fff;
+    font-size:18px;font-weight:800;letter-spacing:1px;
+    padding:14px 34px;
+    box-shadow:0 5px 0 #b83f3f;
+    cursor:pointer;
+    width:100%;
+  }
+  #playBtn:active{transform:translateY(3px);box-shadow:0 2px 0 #b83f3f;}
+  #leaderboardBtn{
+    display:block;margin:10px auto 0;border:none;border-radius:14px;
+    background:#eef3f4;color:var(--ink);font-weight:800;font-size:13px;
+    padding:10px 20px;cursor:pointer;width:100%;
+  }
+  #hint{margin-top:14px;font-size:12px;color:#8b9a9e;font-weight:600;}
 
-    #hud {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding: 16px 18px;
-      pointer-events: none;
-      z-index: 10;
-    }
+  #nameEntry{margin:14px 0;padding:12px;background:#fff6e0;border-radius:14px;}
+  #nameEntry .stat{margin-bottom:2px;}
+  #nameInput{width:62%;padding:9px 10px;border-radius:10px;border:2px solid #ffd27a;font-size:14px;margin-top:8px;margin-right:6px;font-family:inherit;}
+  #saveScoreBtn{border:none;border-radius:10px;background:var(--accent);color:#4a2e00;font-weight:800;padding:9px 14px;cursor:pointer;}
+  #savedMsg{font-size:12px;color:#3a8f4a;font-weight:800;margin-top:6px;}
 
-    #score {
-      background: var(--panel);
-      padding: 8px 18px;
-      border-radius: 16px;
-      font-size: 22px;
-      font-weight: 800;
-      color: var(--ink);
-      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
-      letter-spacing: 1px;
-    }
+  #leaderboardPanel{margin-top:6px;text-align:left;}
+  #leaderboardList{list-style:none;margin:0 0 12px;padding:0;max-height:44vh;overflow-y:auto;}
+  #leaderboardList li{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:10px;font-size:14px;font-weight:700;color:var(--ink);}
+  #leaderboardList li:nth-child(odd){background:#f2f6f7;}
+  #leaderboardList li.empty{justify-content:center;color:#8b9a9e;font-weight:600;}
+  .lbRank{color:#8b9a9e;width:22px;display:inline-block;}
+  .lbScore{color:var(--accent-2);}
+  #leaderboardActions{display:flex;gap:8px;}
+  #exportCsvBtn, #closeLeaderboardBtn{
+    border:none;border-radius:12px;padding:10px 14px;font-weight:800;cursor:pointer;flex:1;
+  }
+  #exportCsvBtn{background:#4fb3e0;color:#fff;}
+  #closeLeaderboardBtn{background:#eef3f4;color:var(--ink);}
 
-    #best {
-      background: var(--panel);
-      padding: 6px 14px;
-      border-radius: 14px;
-      font-size: 13px;
-      font-weight: 700;
-      color: #6b7b80;
-      margin-top: 6px;
-    }
-
-    #staminaWrap {
-      background: var(--panel);
-      padding: 7px 12px;
-      border-radius: 14px;
-      margin-top: 6px;
-      width: 150px;
-      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
-    }
-
-    #staminaLabel {
-      font-size: 10px;
-      font-weight: 800;
-      color: #6b7b80;
-      letter-spacing: 1px;
-      margin-bottom: 4px;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    #staminaBarBg {
-      background: #e2e8e6;
-      border-radius: 8px;
-      height: 10px;
-      overflow: hidden;
-    }
-
-    #staminaBarFill {
-      background: linear-gradient(90deg, #8ee06b, #4fae4f);
-      height: 100%;
-      width: 100%;
-      transition: width 0.25s ease, background 0.25s ease;
-    }
-
-    #title-badge {
-      background: var(--accent);
-      padding: 8px 16px;
-      border-radius: 16px;
-      font-size: 16px;
-      font-weight: 800;
-      color: #4a2e00;
-      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
-      text-align: right;
-    }
-
-    #weatherBadge {
-      margin-top: 6px;
-      background: var(--panel);
-      padding: 5px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 800;
-      color: var(--ink);
-      text-align: right;
-      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
-    }
-
-    #controls {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    #dpad {
-      display: grid;
-      grid-template-columns: 56px 56px 56px;
-      grid-template-rows: 56px 56px 56px;
-      gap: 6px;
-      pointer-events: auto;
-    }
-
-    #dpad button {
-      border: none;
-      border-radius: 14px;
-      background: var(--panel);
-      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
-      font-size: 22px;
-      color: var(--ink);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      active-opacity: 0.5;
-    }
-
-    #dpad button:active {
-      transform: translateY(2px);
-      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
-    }
-
-    #btn-up {
-      grid-column: 2;
-      grid-row: 1;
-    }
-
-    #btn-left {
-      grid-column: 1;
-      grid-row: 2;
-    }
-
-    #btn-down {
-      grid-column: 2;
-      grid-row: 2;
-      background: var(--accent);
-    }
-
-    #btn-right {
-      grid-column: 3;
-      grid-row: 2;
-    }
-
-    #dpad .spacer {
-      visibility: hidden;
-    }
-
-    #overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(20, 30, 35, 0.55);
-      backdrop-filter: blur(2px);
-    }
-
-    #overlay.hidden {
-      display: none;
-    }
-
-    #panel {
-      background: var(--panel);
-      border-radius: 22px;
-      padding: 28px 26px;
-      width: min(360px, 88vw);
-      max-height: 88vh;
-      overflow-y: auto;
-      text-align: center;
-      box-shadow: 0 10px 0 rgba(0, 0, 0, 0.2);
-    }
-
-    #panel h1 {
-      margin: 0 0 4px;
-      font-size: 30px;
-      color: var(--ink);
-      letter-spacing: 1px;
-    }
-
-    #panel .sub {
-      color: #6b7b80;
-      font-size: 14px;
-      margin-bottom: 14px;
-      font-weight: 600;
-    }
-
-    #panel .stat {
-      font-size: 16px;
-      color: var(--ink);
-      margin: 4px 0;
-      font-weight: 700;
-    }
-
-    #panel .stat span {
-      color: var(--accent-2);
-      font-size: 20px;
-    }
-
-    #charSelect {
-      margin: 14px 0;
-    }
-
-    .sectionLabel {
-      font-size: 12px;
-      font-weight: 800;
-      color: #6b7b80;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    #charGrid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-    }
-
-    .charBtn {
-      border: 2px solid transparent;
-      border-radius: 12px;
-      background: #f2f6f7;
-      padding: 8px 4px;
-      width: 62px;
-      cursor: pointer;
-      font-family: inherit;
-    }
-
-    .charBtn.selected {
-      border-color: var(--accent-2);
-      background: #fff0ea;
-    }
-
-    .charEmoji {
-      font-size: 26px;
-      line-height: 1;
-    }
-
-    .charName {
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--ink);
-      margin-top: 3px;
-    }
-
-    #playBtn {
-      margin-top: 14px;
-      border: none;
-      border-radius: 16px;
-      background: var(--accent-2);
-      color: #fff;
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      padding: 14px 34px;
-      box-shadow: 0 5px 0 #b83f3f;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    #playBtn:active {
-      transform: translateY(3px);
-      box-shadow: 0 2px 0 #b83f3f;
-    }
-
-    #leaderboardBtn {
-      display: block;
-      margin: 10px auto 0;
-      border: none;
-      border-radius: 14px;
-      background: #eef3f4;
-      color: var(--ink);
-      font-weight: 800;
-      font-size: 13px;
-      padding: 10px 20px;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    #hint {
-      margin-top: 14px;
-      font-size: 12px;
-      color: #8b9a9e;
-      font-weight: 600;
-    }
-
-    #nameEntry {
-      margin: 14px 0;
-      padding: 12px;
-      background: #fff6e0;
-      border-radius: 14px;
-    }
-
-    #nameEntry .stat {
-      margin-bottom: 2px;
-    }
-
-    #nameInput {
-      width: 62%;
-      padding: 9px 10px;
-      border-radius: 10px;
-      border: 2px solid #ffd27a;
-      font-size: 14px;
-      margin-top: 8px;
-      margin-right: 6px;
-      font-family: inherit;
-    }
-
-    #saveScoreBtn {
-      border: none;
-      border-radius: 10px;
-      background: var(--accent);
-      color: #4a2e00;
-      font-weight: 800;
-      padding: 9px 14px;
-      cursor: pointer;
-    }
-
-    #savedMsg {
-      font-size: 12px;
-      color: #3a8f4a;
-      font-weight: 800;
-      margin-top: 6px;
-    }
-
-    #leaderboardPanel {
-      margin-top: 6px;
-      text-align: left;
-    }
-
-    #leaderboardList {
-      list-style: none;
-      margin: 0 0 12px;
-      padding: 0;
-      max-height: 44vh;
-      overflow-y: auto;
-    }
-
-    #leaderboardList li {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 10px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--ink);
-    }
-
-    #leaderboardList li:nth-child(odd) {
-      background: #f2f6f7;
-    }
-
-    #leaderboardList li.empty {
-      justify-content: center;
-      color: #8b9a9e;
-      font-weight: 600;
-    }
-
-    .lbRank {
-      color: #8b9a9e;
-      width: 22px;
-      display: inline-block;
-    }
-
-    .lbScore {
-      color: var(--accent-2);
-    }
-
-    #leaderboardActions {
-      display: flex;
-      gap: 8px;
-    }
-
-    #exportCsvBtn,
-    #closeLeaderboardBtn {
-      border: none;
-      border-radius: 12px;
-      padding: 10px 14px;
-      font-weight: 800;
-      cursor: pointer;
-      flex: 1;
-    }
-
-    #exportCsvBtn {
-      background: #4fb3e0;
-      color: #fff;
-    }
-
-    #closeLeaderboardBtn {
-      background: #eef3f4;
-      color: var(--ink);
-    }
-
-    #swipe-zone {
-      position: fixed;
-      inset: 0;
-      z-index: 5;
-    }
-  </style>
+  #swipe-zone{position:fixed;inset:0;z-index:5;}
+</style>
 </head>
-
 <body>
 
-  <div id="canvas-wrap"><canvas id="c"></canvas></div>
-  <div id="swipe-zone"></div>
+<div id="canvas-wrap"><canvas id="c"></canvas></div>
+<div id="swipe-zone"></div>
 
-  <div id="hud">
-    <div>
-      <div id="score">0</div>
-      <div id="best">BEST 0</div>
-      <div id="staminaWrap">
-        <div id="staminaLabel"><span>🥭 STAMINA</span><span id="staminaPct">100%</span></div>
-        <div id="staminaBarBg">
-          <div id="staminaBarFill"></div>
-        </div>
-      </div>
-    </div>
-    <div>
-      <div id="title-badge">🐔 HOP RUSH</div>
-      <div id="weatherBadge">☀️ Clear Day</div>
+<div id="hud">
+  <div>
+    <div id="score">0</div>
+    <div id="best">BEST 0</div>
+    <div id="staminaWrap">
+      <div id="staminaLabel"><span>🥭 STAMINA</span><span id="staminaPct">100%</span></div>
+      <div id="staminaBarBg"><div id="staminaBarFill"></div></div>
     </div>
   </div>
-
-  <div id="controls">
-    <div id="dpad">
-      <div class="spacer"></div><button id="btn-up">▲</button>
-      <div class="spacer"></div>
-      <button id="btn-left">◀</button><button id="btn-down">▼</button><button id="btn-right">▶</button>
-    </div>
+  <div>
+    <div id="title-badge">🐔 HOP RUSH</div>
+    <div id="weatherBadge">☀️ Clear Day</div>
   </div>
+</div>
 
-  <div id="overlay">
-    <div id="panel">
-      <h1>HOP RUSH</h1>
-      <div class="sub">a crossy road-style dash</div>
-      <div class="stat">Last run: <span id="lastScore">0</span></div>
-      <div class="stat">Best: <span id="bestScore">0</span></div>
-      <div id="deathReason" class="sub hidden"></div>
-
-      <div id="charSelect">
-        <div class="sectionLabel">Choose your runner</div>
-        <div id="charGrid"></div>
-      </div>
-
-      <div id="nameEntry" class="hidden">
-        <div class="stat">🎉 New leaderboard score!</div>
-        <input id="nameInput" maxlength="12" placeholder="Your name" />
-        <button id="saveScoreBtn">SAVE</button>
-        <div id="savedMsg" class="hidden">Saved to leaderboard!</div>
-      </div>
-
-      <div id="leaderboardPanel" class="hidden">
-        <div class="sectionLabel">Top 10</div>
-        <ol id="leaderboardList"></ol>
-        <div id="leaderboardActions">
-          <button id="exportCsvBtn">⬇ EXPORT CSV</button>
-          <button id="closeLeaderboardBtn">CLOSE</button>
-        </div>
-      </div>
-
-      <button id="playBtn">PLAY</button>
-      <button id="leaderboardBtn">🏆 LEADERBOARD</button>
-      <div id="hint">Arrow keys / WASD / swipe / tap the pad<br />Cross roads, ride logs, don't get squashed 🐸<br />🥭
-        Eat mangoes to keep your stamina up — hopping burns it!</div>
-    </div>
+<div id="controls">
+  <div id="dpad">
+    <div class="spacer"></div><button id="btn-up">▲</button><div class="spacer"></div>
+    <button id="btn-left">◀</button><button id="btn-down">▼</button><button id="btn-right">▶</button>
   </div>
+</div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script>
-    (function () {
-      "use strict";
+<div id="overlay">
+  <div id="panel">
+    <h1>HOP RUSH</h1>
+    <div class="sub">a crossy road-style dash</div>
+    <div class="stat">Last run: <span id="lastScore">0</span></div>
+    <div class="stat">Best: <span id="bestScore">0</span></div>
+    <div id="deathReason" class="sub hidden"></div>
 
-      // ---------- basic setup ----------
-      const canvas = document.getElementById('c');
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    <div id="charSelect">
+      <div class="sectionLabel">Choose your runner</div>
+      <div id="charGrid"></div>
+    </div>
 
-      const scene = new THREE.Scene();
-      scene.fog = new THREE.Fog(0xcdeeff, 50, 120);
+    <div id="nameEntry" class="hidden">
+      <div class="stat">🎉 New leaderboard score!</div>
+      <input id="nameInput" maxlength="12" placeholder="Your name" />
+      <button id="saveScoreBtn">SAVE</button>
+      <div id="savedMsg" class="hidden">Saved to leaderboard!</div>
+    </div>
 
-      const VIEW = 12;
-      const camera = new THREE.OrthographicCamera(-VIEW, VIEW, VIEW, -VIEW, -50, 100);
-      function setCamera() {
-        const aspect = window.innerWidth / window.innerHeight;
-        const w = VIEW, h = VIEW / aspect;
-        camera.left = -w; camera.right = w; camera.top = h; camera.bottom = -h;
-        camera.updateProjectionMatrix();
-      }
+    <div id="leaderboardPanel" class="hidden">
+      <div class="sectionLabel">Top 10</div>
+      <ol id="leaderboardList"></ol>
+      <div id="leaderboardActions">
+        <button id="exportCsvBtn">⬇ EXPORT CSV</button>
+        <button id="closeLeaderboardBtn">CLOSE</button>
+      </div>
+    </div>
 
-      const CAM_OFFSET = new THREE.Vector3(-14, 14, 14);
-      camera.position.copy(CAM_OFFSET);
-      camera.lookAt(0, 0, 0);
+    <button id="playBtn">PLAY</button>
+    <button id="leaderboardBtn">🏆 LEADERBOARD</button>
+    <div id="hint">Arrow keys / WASD / swipe / tap the pad<br/>Cross roads, ride logs, don't get squashed 🐸<br/>🥭 Eat mangoes to keep your stamina up — hopping burns it!</div>
+  </div>
+</div>
 
-      // lights
-      const hemi = new THREE.HemisphereLight(0xffffff, 0x88aa66, 0.9);
-      scene.add(hemi);
-      const sun = new THREE.DirectionalLight(0xffffff, 0.9);
-      sun.position.set(-30, 40, 20);
-      sun.castShadow = true;
-      sun.shadow.camera.left = -30; sun.shadow.camera.right = 30;
-      sun.shadow.camera.top = 30; sun.shadow.camera.bottom = -30;
-      sun.shadow.camera.near = 1; sun.shadow.camera.far = 100;
-      sun.shadow.mapSize.set(2048, 2048);
-      sun.shadow.bias = -0.0015;
-      sun.shadow.normalBias = 0.02;
-      scene.add(sun);
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
 
-      function resize() {
-        renderer.setSize(window.innerWidth, window.innerHeight, false);
-        setCamera();
-      }
-      window.addEventListener('resize', resize);
-      resize();
+  // ---------- basic setup ----------
+  const canvas = document.getElementById('c');
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-      // ---------- helpers ----------
-      const LANE_W = 2; // world units per row (depth)
-      const COLS = 17;  // visible columns (x), odd number so center col = 0
-      const HALF = Math.floor(COLS / 2);
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0xcdeeff, 50, 120);
 
-      function box(w, h, d, color, unlit) {
-        const geo = new THREE.BoxGeometry(w, h, d);
-        const mat = unlit
-          ? new THREE.MeshBasicMaterial({ color, fog: false })
-          : new THREE.MeshLambertMaterial({ color });
-        const m = new THREE.Mesh(geo, mat);
-        m.castShadow = !unlit; m.receiveShadow = true;
-        return m;
-      }
-      function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  const VIEW = 12;
+  const camera = new THREE.OrthographicCamera(-VIEW, VIEW, VIEW, -VIEW, -50, 100);
+  function setCamera(){
+    const aspect = window.innerWidth/window.innerHeight;
+    const w = VIEW, h = VIEW/aspect;
+    camera.left = -w; camera.right = w; camera.top = h; camera.bottom = -h;
+    camera.updateProjectionMatrix();
+  }
 
-      // color palettes
-      const GRASS_COLORS = [0x7ec850, 0x74bf49];
-      const ROAD_COLOR = 0x35353c;
-      // water is unlit AND ignores fog so it always reads as a clean, saturated blue
-      const WATER_COLOR = 0x0066ff;
-      const CURB_COLOR = 0xe6e6e6;
-      const FOAM_COLOR = 0xe6f9ff;
-      // bazaar-style shopfront palette (bright, Pakistani street-market colors)
-      const SHOP_WALL_COLORS = [0xff6f61, 0x3fae6a, 0xffce54, 0x5aa9e6, 0xff8fb1, 0x9b7ede, 0xff9a3d];
-      const AWNING_COLORS = [0xff5d5d, 0x3fae6a, 0xffce54, 0x5aa9e6, 0xffffff];
+  const CAM_OFFSET = new THREE.Vector3(-14,14,14);
+  camera.position.copy(CAM_OFFSET);
+  camera.lookAt(0,0,0);
 
-      // ---------- weather / time-of-day ----------
-      const ENVIRONMENTS = [
-        {
-          name: 'Clear Day', icon: '☀️', night: false, weather: 'clear',
-          skyTop: '#8fd3ff', skyBottom: '#cdeeff', fogColor: 0xcdeeff, fogNear: 50, fogFar: 120,
-          hemi: 0.9, hemiGround: 0x88aa66, hemiSky: 0xffffff, sun: 0.9, sunColor: 0xffffff
-        },
-        {
-          name: 'Misty Day', icon: '🌫️', night: false, weather: 'fog',
-          skyTop: '#bcd9df', skyBottom: '#e4f3f2', fogColor: 0xdcebe9, fogNear: 24, fogFar: 52,
-          hemi: 0.8, hemiGround: 0x8fa08a, hemiSky: 0xf0f6f6, sun: 0.65, sunColor: 0xffffff
-        },
-        {
-          name: 'Rainy Day', icon: '🌧️', night: false, weather: 'rain',
-          skyTop: '#8a9aa2', skyBottom: '#b7c4c9', fogColor: 0xaab6ba, fogNear: 34, fogFar: 80,
-          hemi: 0.55, hemiGround: 0x5a6a66, hemiSky: 0xcfd9dc, sun: 0.45, sunColor: 0xd7e4ea
-        },
-        {
-          name: 'Clear Night', icon: '🌙', night: true, weather: 'clear',
-          skyTop: '#0d1b2a', skyBottom: '#22384e', fogColor: 0x18283a, fogNear: 40, fogFar: 95,
-          hemi: 0.35, hemiGround: 0x1b2a3a, hemiSky: 0x8fa8ff, sun: 0.3, sunColor: 0x9fb4ff
-        },
-        {
-          name: 'Foggy Night', icon: '🌁', night: true, weather: 'fog',
-          skyTop: '#0a141c', skyBottom: '#17242e', fogColor: 0x121c22, fogNear: 18, fogFar: 42,
-          hemi: 0.28, hemiGround: 0x14202a, hemiSky: 0x6f88a8, sun: 0.2, sunColor: 0x8fa0c0
-        },
-      ];
-      let currentEnv = ENVIRONMENTS[0];
+  // lights
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x88aa66, 0.9);
+  scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+  sun.position.set(-30,40,20);
+  sun.castShadow = true;
+  sun.shadow.camera.left = -30; sun.shadow.camera.right = 30;
+  sun.shadow.camera.top = 30; sun.shadow.camera.bottom = -30;
+  sun.shadow.camera.near = 1; sun.shadow.camera.far = 100;
+  sun.shadow.mapSize.set(2048,2048);
+  sun.shadow.bias = -0.0015;
+  sun.shadow.normalBias = 0.02;
+  scene.add(sun);
 
-      function buildStars() {
-        const N = 220;
-        const geo = new THREE.BufferGeometry();
-        const positions = new Float32Array(N * 3);
-        for (let i = 0; i < N; i++) {
-          positions[i * 3] = (Math.random() - 0.5) * 130;
-          positions[i * 3 + 1] = 18 + Math.random() * 38;
-          positions[i * 3 + 2] = (Math.random() - 0.5) * 130;
-        }
-        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const mat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.55, sizeAttenuation: true, transparent: true, opacity: 0.9 });
-        const pts = new THREE.Points(geo, mat);
-        pts.visible = false;
-        return pts;
-      }
-      const starsGroup = buildStars();
-      scene.add(starsGroup);
+  function resize(){
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    setCamera();
+  }
+  window.addEventListener('resize', resize);
+  resize();
 
-      function buildRain() {
-        const N = 260;
-        const geo = new THREE.BufferGeometry();
-        const positions = new Float32Array(N * 3);
-        for (let i = 0; i < N; i++) {
-          positions[i * 3] = (Math.random() - 0.5) * 50;
-          positions[i * 3 + 1] = Math.random() * 30;
-          positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
-        }
-        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const mat = new THREE.PointsMaterial({ color: 0xaad4ff, size: 0.14, transparent: true, opacity: 0.75 });
-        const pts = new THREE.Points(geo, mat);
-        pts.visible = false;
-        return pts;
-      }
-      const rainGroup = buildRain();
-      scene.add(rainGroup);
+  // ---------- helpers ----------
+  const LANE_W = 2; // world units per row (depth)
+  const COLS = 17;  // visible columns (x), odd number so center col = 0
+  const HALF = Math.floor(COLS/2);
 
-      function applyEnvironment(env) {
-        currentEnv = env;
-        scene.fog = new THREE.Fog(env.fogColor, env.fogNear, env.fogFar);
-        hemi.intensity = env.hemi;
-        hemi.color.set(env.hemiSky);
-        hemi.groundColor.set(env.hemiGround);
-        sun.intensity = env.sun;
-        sun.color.set(env.sunColor);
-        document.body.style.background = `linear-gradient(${env.skyTop}, ${env.skyBottom})`;
-        starsGroup.visible = env.night;
-        rainGroup.visible = env.weather === 'rain';
-        const badge = document.getElementById('weatherBadge');
-        if (badge) badge.textContent = env.icon + ' ' + env.name;
-      }
-      applyEnvironment(ENVIRONMENTS[0]);
+  function box(w,h,d,color,unlit){
+    const geo = new THREE.BoxGeometry(w,h,d);
+    const mat = unlit
+      ? new THREE.MeshBasicMaterial({color, fog:false})
+      : new THREE.MeshLambertMaterial({color});
+    const m = new THREE.Mesh(geo,mat);
+    m.castShadow = !unlit; m.receiveShadow = true;
+    return m;
+  }
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
-      // ---------- world state ----------
-      let rows = [];        // row data by index (index = z step, increasing forward)
-      let rowGroups = new Map(); // index -> THREE.Group (visual)
-      let vehicles = [];     // active moving objects {mesh, rowIndex, speed, dir, width}
-      let mangoes = [];      // collectible {mesh, row, x, collected, bobOffset}
-      let player, playerZ = 0, playerX = 0; // grid coords
-      let playerPos = new THREE.Vector3(0, 0.5, 0); // visual position
-      let playerTarget = new THREE.Vector3(0, 0.5, 0);
-      let hopT = 1; // 0..1 hop animation progress (1 = idle)
-      let hopFrom = new THREE.Vector3();
-      let facing = 0; // radians
-      let targetFacing = 0;
-      let onLog = null;
-      let alive = true;
-      let score = 0;
-      let best = parseInt(localStorage.getItem('hopRushBest') || '0', 10);
-      let started = false;
-      let riverStreak = 0;
+  // color palettes
+  const GRASS_COLORS = [0x7ec850, 0x74bf49];
+  const ROAD_COLOR = 0x35353c;
+  // water is unlit AND ignores fog so it always reads as a clean, saturated blue
+  const WATER_COLOR = 0x0066ff;
+  const CURB_COLOR = 0xe6e6e6;
+  const FOAM_COLOR = 0xe6f9ff;
+  // bazaar-style shopfront palette (bright, Pakistani street-market colors)
+  const SHOP_WALL_COLORS = [0xff6f61, 0x3fae6a, 0xffce54, 0x5aa9e6, 0xff8fb1, 0x9b7ede, 0xff9a3d];
+  const AWNING_COLORS = [0xff5d5d, 0x3fae6a, 0xffce54, 0x5aa9e6, 0xffffff];
 
-      // ---------- stamina ----------
-      const STAMINA_MAX = 100;
-      const STAMINA_PER_HOP = 6;
-      const MANGO_RESTORE = 32;
-      let stamina = STAMINA_MAX;
-      let lastDeathReason = 'squashed';
+  // ---------- weather / time-of-day ----------
+  const ENVIRONMENTS = [
+    { name:'Clear Day',  icon:'☀️', night:false, weather:'clear',
+      skyTop:'#8fd3ff', skyBottom:'#cdeeff', fogColor:0xcdeeff, fogNear:50, fogFar:120,
+      hemi:0.9, hemiGround:0x88aa66, hemiSky:0xffffff, sun:0.9, sunColor:0xffffff },
+    { name:'Misty Day',  icon:'🌫️', night:false, weather:'fog',
+      skyTop:'#bcd9df', skyBottom:'#e4f3f2', fogColor:0xdcebe9, fogNear:24, fogFar:52,
+      hemi:0.8, hemiGround:0x8fa08a, hemiSky:0xf0f6f6, sun:0.65, sunColor:0xffffff },
+    { name:'Rainy Day',  icon:'🌧️', night:false, weather:'rain',
+      skyTop:'#8a9aa2', skyBottom:'#b7c4c9', fogColor:0xaab6ba, fogNear:34, fogFar:80,
+      hemi:0.55, hemiGround:0x5a6a66, hemiSky:0xcfd9dc, sun:0.45, sunColor:0xd7e4ea },
+    { name:'Clear Night', icon:'🌙', night:true, weather:'clear',
+      skyTop:'#0d1b2a', skyBottom:'#22384e', fogColor:0x18283a, fogNear:40, fogFar:95,
+      hemi:0.35, hemiGround:0x1b2a3a, hemiSky:0x8fa8ff, sun:0.3, sunColor:0x9fb4ff },
+    { name:'Foggy Night', icon:'🌁', night:true, weather:'fog',
+      skyTop:'#0a141c', skyBottom:'#17242e', fogColor:0x121c22, fogNear:18, fogFar:42,
+      hemi:0.28, hemiGround:0x14202a, hemiSky:0x6f88a8, sun:0.2, sunColor:0x8fa0c0 },
+  ];
+  let currentEnv = ENVIRONMENTS[0];
+  let weatherTimer = 0;
+  const WEATHER_CHANGE_MS = 15000;
 
-      const worldGroup = new THREE.Group();
-      scene.add(worldGroup);
+  function buildStars(){
+    const N = 220;
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(N*3);
+    for(let i=0;i<N;i++){
+      positions[i*3] = (Math.random()-0.5)*130;
+      positions[i*3+1] = 18 + Math.random()*38;
+      positions[i*3+2] = (Math.random()-0.5)*130;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+    const mat = new THREE.PointsMaterial({color:0xffffff, size:0.55, sizeAttenuation:true, transparent:true, opacity:0.9});
+    const pts = new THREE.Points(geo, mat);
+    pts.visible = false;
+    return pts;
+  }
+  const starsGroup = buildStars();
+  scene.add(starsGroup);
 
-      // ground filler far below to avoid gaps — offset below tile tops to prevent z-fighting flicker
-      const backdrop = box(220, 1, 220, 0x9fdc7a);
-      backdrop.position.y = -0.92;
-      backdrop.receiveShadow = true;
-      scene.add(backdrop);
+  function buildRain(){
+    const N = 260;
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(N*3);
+    for(let i=0;i<N;i++){
+      positions[i*3] = (Math.random()-0.5)*50;
+      positions[i*3+1] = Math.random()*30;
+      positions[i*3+2] = (Math.random()-0.5)*50;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+    const mat = new THREE.PointsMaterial({color:0xaad4ff, size:0.14, transparent:true, opacity:0.75});
+    const pts = new THREE.Points(geo, mat);
+    pts.visible = false;
+    return pts;
+  }
+  const rainGroup = buildRain();
+  scene.add(rainGroup);
 
-      // ---------- characters ----------
-      function eyeSet(g, yTop, z) {
-        const eyeL = box(0.1, 0.1, 0.05, 0x1b2a2f);
-        eyeL.position.set(-0.16, yTop, z);
-        const eyeR = box(0.1, 0.1, 0.05, 0x1b2a2f);
-        eyeR.position.set(0.16, yTop, z);
-        g.add(eyeL, eyeR);
-      }
+  function applyEnvironment(env){
+    currentEnv = env;
+    scene.fog = new THREE.Fog(env.fogColor, env.fogNear, env.fogFar);
+    hemi.intensity = env.hemi;
+    hemi.color.set(env.hemiSky);
+    hemi.groundColor.set(env.hemiGround);
+    sun.intensity = env.sun;
+    sun.color.set(env.sunColor);
+    document.body.style.background = `linear-gradient(${env.skyTop}, ${env.skyBottom})`;
+    starsGroup.visible = env.night;
+    rainGroup.visible = env.weather==='rain';
+    const badge = document.getElementById('weatherBadge');
+    if(badge) badge.textContent = env.icon + ' ' + env.name;
+  }
+  applyEnvironment(ENVIRONMENTS[0]);
 
-      function buildChicken() {
-        const g = new THREE.Group();
-        const body = box(0.8, 0.6, 0.8, 0xffe08a); body.position.y = 0.4;
-        const head = box(0.55, 0.5, 0.55, 0xffffff); head.position.y = 0.95;
-        const beak = box(0.22, 0.18, 0.3, 0xff9a3d); beak.position.set(0, 0.9, 0.4);
-        const combL = box(0.16, 0.2, 0.16, 0xff5d5d); combL.position.set(-0.12, 1.28, 0);
-        const combR = box(0.16, 0.2, 0.16, 0xff5d5d); combR.position.set(0.12, 1.28, 0);
-        g.add(body, head, beak, combL, combR);
-        eyeSet(g, 1.0, 0.28);
-        g.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
-        return g;
-      }
+  // ---------- world state ----------
+  let rows = [];        // row data by index (index = z step, increasing forward)
+  let rowGroups = new Map(); // index -> THREE.Group (visual)
+  let vehicles = [];     // active moving objects {mesh, rowIndex, speed, dir, width}
+  let mangoes = [];      // collectible {mesh, row, x, collected, bobOffset}
+  let player, playerZ=0, playerX=0; // grid coords
+  let playerPos = new THREE.Vector3(0,0.5,0); // visual position
+  let playerTarget = new THREE.Vector3(0,0.5,0);
+  let hopT = 1; // 0..1 hop animation progress (1 = idle)
+  let hopFrom = new THREE.Vector3();
+  let facing = 0; // radians
+  let targetFacing = 0;
+  let onLog = null;
+  let alive = true;
+  let score = 0;
+  let best = parseInt(localStorage.getItem('hopRushBest')||'0',10);
+  let started = false;
+  let riverStreak = 0;
 
-      function buildBunny() {
-        const g = new THREE.Group();
-        const body = box(0.75, 0.6, 0.75, 0xffffff); body.position.y = 0.4;
-        const head = box(0.5, 0.5, 0.5, 0xffffff); head.position.y = 0.92;
-        const nose = box(0.14, 0.12, 0.15, 0xffb6c1); nose.position.set(0, 0.85, 0.3);
-        const earL = box(0.18, 0.55, 0.16, 0xffffff); earL.position.set(-0.14, 1.5, 0); earL.rotation.z = 0.12;
-        const earR = box(0.18, 0.55, 0.16, 0xffffff); earR.position.set(0.14, 1.5, 0); earR.rotation.z = -0.12;
-        const innerL = box(0.09, 0.4, 0.05, 0xffb6c1); innerL.position.set(-0.14, 1.48, 0.11);
-        const innerR = box(0.09, 0.4, 0.05, 0xffb6c1); innerR.position.set(0.14, 1.48, 0.11);
-        g.add(body, head, nose, earL, earR, innerL, innerR);
-        eyeSet(g, 0.98, 0.26);
-        g.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
-        return g;
-      }
+  // ---------- stamina ----------
+  const STAMINA_MAX = 100;
+  const STAMINA_PER_HOP = 6;
+  const MANGO_RESTORE = 32;
+  let stamina = STAMINA_MAX;
+  let lastDeathReason = 'squashed';
 
-      function buildRobot() {
-        const g = new THREE.Group();
-        const body = box(0.78, 0.62, 0.7, 0x9aa5ad); body.position.y = 0.4;
-        const head = box(0.55, 0.48, 0.5, 0xc7d0d6); head.position.y = 0.93;
-        const visor = box(0.4, 0.16, 0.05, 0x39c6ff); visor.position.set(0, 0.95, 0.28);
-        const antenna = box(0.06, 0.3, 0.06, 0x555f66); antenna.position.set(0, 1.32, 0);
-        const tip = box(0.12, 0.12, 0.12, 0xff5d5d); tip.position.set(0, 1.5, 0);
-        g.add(body, head, visor, antenna, tip);
-        g.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
-        return g;
-      }
+  const worldGroup = new THREE.Group();
+  scene.add(worldGroup);
 
-      function buildCat() {
-        const g = new THREE.Group();
-        const body = box(0.75, 0.58, 0.75, 0xff9a3d); body.position.y = 0.38;
-        const head = box(0.5, 0.45, 0.5, 0xff9a3d); head.position.y = 0.88;
-        const earL = box(0.2, 0.2, 0.08, 0xff9a3d); earL.position.set(-0.16, 1.18, 0); earL.rotation.z = 0.5;
-        const earR = box(0.2, 0.2, 0.08, 0xff9a3d); earR.position.set(0.16, 1.18, 0); earR.rotation.z = -0.5;
-        const nose = box(0.1, 0.08, 0.1, 0xff5d5d); nose.position.set(0, 0.8, 0.27);
-        const tail = box(0.14, 0.14, 0.55, 0xff9a3d); tail.position.set(0, 0.55, -0.55); tail.rotation.x = 0.4;
-        g.add(body, head, earL, earR, nose, tail);
-        eyeSet(g, 0.92, 0.24);
-        g.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
-        return g;
-      }
+  // ground filler far below to avoid gaps — offset below tile tops to prevent z-fighting flicker
+  const backdrop = box(220,1,220,0x9fdc7a);
+  backdrop.position.y = -0.92;
+  backdrop.receiveShadow = true;
+  scene.add(backdrop);
 
-      function buildPanda() {
-        const g = new THREE.Group();
-        const body = box(0.8, 0.62, 0.8, 0xffffff); body.position.y = 0.4;
-        const head = box(0.56, 0.5, 0.56, 0xffffff); head.position.y = 0.95;
-        const earL = box(0.22, 0.22, 0.14, 0x1b2a2f); earL.position.set(-0.22, 1.24, 0);
-        const earR = box(0.22, 0.22, 0.14, 0x1b2a2f); earR.position.set(0.22, 1.24, 0);
-        const patchL = box(0.22, 0.16, 0.06, 0x1b2a2f); patchL.position.set(-0.15, 0.98, 0.28);
-        const patchR = box(0.22, 0.16, 0.06, 0x1b2a2f); patchR.position.set(0.15, 0.98, 0.28);
-        g.add(body, head, earL, earR, patchL, patchR);
-        eyeSet(g, 0.98, 0.3);
-        g.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
-        return g;
-      }
+  // ---------- characters ----------
+  function eyeSet(g, yTop, z){
+    const eyeL = box(0.1,0.1,0.05,0x1b2a2f);
+    eyeL.position.set(-0.16,yTop,z);
+    const eyeR = box(0.1,0.1,0.05,0x1b2a2f);
+    eyeR.position.set(0.16,yTop,z);
+    g.add(eyeL,eyeR);
+  }
 
-      const CHARACTERS = [
-        { id: 'chicken', emoji: '🐔', name: 'Chicken', build: buildChicken },
-        { id: 'bunny', emoji: '🐰', name: 'Bunny', build: buildBunny },
-        { id: 'robot', emoji: '🤖', name: 'Robot', build: buildRobot },
-        { id: 'cat', emoji: '🐱', name: 'Cat', build: buildCat },
-        { id: 'panda', emoji: '🐼', name: 'Panda', build: buildPanda },
-      ];
-      let selectedCharId = localStorage.getItem('hopRushCharacter') || 'chicken';
-      if (!CHARACTERS.find(c => c.id === selectedCharId)) selectedCharId = 'chicken';
+  function buildChicken(){
+    const g = new THREE.Group();
+    const body = box(0.8,0.6,0.8,0xffe08a); body.position.y=0.4;
+    const head = box(0.55,0.5,0.55,0xffffff); head.position.y=0.95;
+    const beak = box(0.22,0.18,0.3,0xff9a3d); beak.position.set(0,0.9,0.4);
+    const combL = box(0.16,0.2,0.16,0xff5d5d); combL.position.set(-0.12,1.28,0);
+    const combR = box(0.16,0.2,0.16,0xff5d5d); combR.position.set(0.12,1.28,0);
+    g.add(body,head,beak,combL,combR);
+    eyeSet(g,1.0,0.28);
+    g.traverse(o=>{if(o.isMesh){o.castShadow=true;}});
+    return g;
+  }
 
-      function rebuildPlayerMesh() {
-        if (player) scene.remove(player);
-        const def = CHARACTERS.find(c => c.id === selectedCharId) || CHARACTERS[0];
-        player = def.build();
-        player.position.copy(playerPos);
-        player.rotation.y = facing;
-        scene.add(player);
-        const badge = document.getElementById('title-badge');
-        if (badge) badge.textContent = def.emoji + ' HOP RUSH';
-      }
+  function buildBunny(){
+    const g = new THREE.Group();
+    const body = box(0.75,0.6,0.75,0xffffff); body.position.y=0.4;
+    const head = box(0.5,0.5,0.5,0xffffff); head.position.y=0.92;
+    const nose = box(0.14,0.12,0.15,0xffb6c1); nose.position.set(0,0.85,0.3);
+    const earL = box(0.18,0.55,0.16,0xffffff); earL.position.set(-0.14,1.5,0); earL.rotation.z=0.12;
+    const earR = box(0.18,0.55,0.16,0xffffff); earR.position.set(0.14,1.5,0); earR.rotation.z=-0.12;
+    const innerL = box(0.09,0.4,0.05,0xffb6c1); innerL.position.set(-0.14,1.48,0.11);
+    const innerR = box(0.09,0.4,0.05,0xffb6c1); innerR.position.set(0.14,1.48,0.11);
+    g.add(body,head,nose,earL,earR,innerL,innerR);
+    eyeSet(g,0.98,0.26);
+    g.traverse(o=>{if(o.isMesh){o.castShadow=true;}});
+    return g;
+  }
 
-      function renderCharGrid() {
-        const grid = document.getElementById('charGrid');
-        grid.innerHTML = '';
-        for (const c of CHARACTERS) {
-          const btn = document.createElement('button');
-          btn.className = 'charBtn' + (c.id === selectedCharId ? ' selected' : '');
-          btn.innerHTML = `<div class="charEmoji">${c.emoji}</div><div class="charName">${c.name}</div>`;
-          btn.addEventListener('click', () => {
-            selectedCharId = c.id;
-            localStorage.setItem('hopRushCharacter', c.id);
-            renderCharGrid();
-            rebuildPlayerMesh();
-          });
-          grid.appendChild(btn);
-        }
-      }
+  function buildRobot(){
+    const g = new THREE.Group();
+    const body = box(0.78,0.62,0.7,0x9aa5ad); body.position.y=0.4;
+    const head = box(0.55,0.48,0.5,0xc7d0d6); head.position.y=0.93;
+    const visor = box(0.4,0.16,0.05,0x39c6ff); visor.position.set(0,0.95,0.28);
+    const antenna = box(0.06,0.3,0.06,0x555f66); antenna.position.set(0,1.32,0);
+    const tip = box(0.12,0.12,0.12,0xff5d5d); tip.position.set(0,1.5,0);
+    g.add(body,head,visor,antenna,tip);
+    g.traverse(o=>{if(o.isMesh){o.castShadow=true;}});
+    return g;
+  }
 
-      // ---------- farm animal traffic ----------
-      function buildQuadruped(o) {
-        const g = new THREE.Group();
-        const body = box(o.bodyLen, o.bodyH, o.bodyD, o.bodyColor);
-        body.position.y = o.bodyY;
-        const head = box(o.headSize, o.headSize, o.headSize, o.headColor || o.bodyColor);
-        head.position.set(o.bodyLen / 2 + o.headSize * 0.35, o.bodyY + o.headSize * 0.15, 0);
-        g.add(body, head);
-        for (const sx of [-1, 1]) {
-          for (const sz of [-1, 1]) {
-            const leg = box(0.16, o.legH, 0.16, o.legColor || 0x3a2a1a);
-            leg.position.set(sx * o.bodyLen * 0.3, o.bodyY - o.bodyH / 2 - o.legH / 2, sz * o.bodyD * 0.32);
-            g.add(leg);
-          }
-        }
-        if (o.ears) {
-          for (const ex of [-1, 1]) {
-            const ear = box(o.earSize[0], o.earSize[1], o.earSize[2], o.earColor || o.headColor || o.bodyColor);
-            ear.position.set(o.bodyLen / 2 + o.headSize * 0.15, o.bodyY + o.headSize * 0.7, ex * o.headSize * 0.28);
-            ear.rotation.z = ex * (o.earTilt || 0);
-            g.add(ear);
-          }
-        }
-        const tail = box(0.13, 0.13, o.tailLen || 0.45, o.bodyColor);
-        tail.position.set(-o.bodyLen / 2 - 0.14, o.bodyY + 0.08, 0);
-        g.add(tail);
-        if (o.patches) {
-          for (const p of o.patches) {
-            const patch = box(p[0], p[1], 0.06, 0x2a2a2a);
-            patch.position.set(p[2], o.bodyY + p[3], o.bodyD / 2);
-            g.add(patch);
-          }
-        }
-        if (o.mane) {
-          const mane = box(0.5, o.headSize * 0.9, 0.14, 0x2a1a10);
-          mane.position.set(o.bodyLen / 2 - 0.1, o.bodyY + o.headSize * 0.7, 0);
-          g.add(mane);
-        }
-        g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
-        return g;
-      }
+  function buildCat(){
+    const g = new THREE.Group();
+    const body = box(0.75,0.58,0.75,0xff9a3d); body.position.y=0.38;
+    const head = box(0.5,0.45,0.5,0xff9a3d); head.position.y=0.88;
+    const earL = box(0.2,0.2,0.08,0xff9a3d); earL.position.set(-0.16,1.18,0); earL.rotation.z=0.5;
+    const earR = box(0.2,0.2,0.08,0xff9a3d); earR.position.set(0.16,1.18,0); earR.rotation.z=-0.5;
+    const nose = box(0.1,0.08,0.1,0xff5d5d); nose.position.set(0,0.8,0.27);
+    const tail = box(0.14,0.14,0.55,0xff9a3d); tail.position.set(0,0.55,-0.55); tail.rotation.x=0.4;
+    g.add(body,head,earL,earR,nose,tail);
+    eyeSet(g,0.92,0.24);
+    g.traverse(o=>{if(o.isMesh){o.castShadow=true;}});
+    return g;
+  }
 
-      const ANIMAL_DEFS = {
-        cow: {
-          bodyLen: 1.6, bodyH: 0.9, bodyD: 0.85, bodyY: 0.55, headSize: 0.5, legH: 0.5,
-          bodyColor: 0xf5f0e6, headColor: 0xf5f0e6, legColor: 0x3a3a3a, tailLen: 0.6,
-          ears: true, earSize: [0.26, 0.14, 0.28], earTilt: 0.3,
-          patches: [[0.5, 0.3, 0.2, 0.25], [0.4, 0.3, -0.3, -0.15]]
-        },
-        dog: {
-          bodyLen: 1.05, bodyH: 0.5, bodyD: 0.45, bodyY: 0.38, headSize: 0.4, legH: 0.34,
-          bodyColor: 0xc98a4b, headColor: 0xc98a4b, legColor: 0x8a5a2f, tailLen: 0.4,
-          ears: true, earSize: [0.22, 0.3, 0.1], earTilt: 0.35
-        },
-        cat: {
-          bodyLen: 0.85, bodyH: 0.42, bodyD: 0.38, bodyY: 0.3, headSize: 0.32, legH: 0.26,
-          bodyColor: 0x8a8a8a, headColor: 0x8a8a8a, legColor: 0x5a5a5a, tailLen: 0.5,
-          ears: true, earSize: [0.16, 0.18, 0.08], earTilt: 0.45
-        },
-        horse: {
-          bodyLen: 1.7, bodyH: 1.0, bodyD: 0.55, bodyY: 0.75, headSize: 0.45, legH: 0.75,
-          bodyColor: 0x6b4226, headColor: 0x6b4226, legColor: 0x3a2414, tailLen: 0.7,
-          ears: true, earSize: [0.1, 0.22, 0.08], earTilt: 0.2, mane: true
-        },
-        donkey: {
-          bodyLen: 1.4, bodyH: 0.85, bodyD: 0.5, bodyY: 0.6, headSize: 0.42, legH: 0.6,
-          bodyColor: 0x9a9084, headColor: 0x9a9084, legColor: 0x5a5248, tailLen: 0.5,
-          ears: true, earSize: [0.16, 0.55, 0.14], earTilt: 0.18
-        },
-      };
-      // cats and dogs are the most common street traffic (weighted pool), other animals rarer
-      const ANIMAL_TYPES = ['cat', 'cat', 'cat', 'dog', 'dog', 'dog', 'cow', 'horse', 'donkey'];
+  function buildPanda(){
+    const g = new THREE.Group();
+    const body = box(0.8,0.62,0.8,0xffffff); body.position.y=0.4;
+    const head = box(0.56,0.5,0.56,0xffffff); head.position.y=0.95;
+    const earL = box(0.22,0.22,0.14,0x1b2a2f); earL.position.set(-0.22,1.24,0);
+    const earR = box(0.22,0.22,0.14,0x1b2a2f); earR.position.set(0.22,1.24,0);
+    const patchL = box(0.22,0.16,0.06,0x1b2a2f); patchL.position.set(-0.15,0.98,0.28);
+    const patchR = box(0.22,0.16,0.06,0x1b2a2f); patchR.position.set(0.15,0.98,0.28);
+    g.add(body,head,earL,earR,patchL,patchR);
+    eyeSet(g,0.98,0.3);
+    g.traverse(o=>{if(o.isMesh){o.castShadow=true;}});
+    return g;
+  }
 
-      function buildAnimalMesh(type) {
-        const def = ANIMAL_DEFS[type];
-        const mesh = buildQuadruped(def);
-        return { mesh, halfLen: def.bodyLen / 2 + 0.15 };
-      }
+  const CHARACTERS = [
+    {id:'chicken', emoji:'🐔', name:'Chicken', build:buildChicken},
+    {id:'bunny',   emoji:'🐰', name:'Bunny',   build:buildBunny},
+    {id:'robot',   emoji:'🤖', name:'Robot',   build:buildRobot},
+    {id:'cat',     emoji:'🐱', name:'Cat',     build:buildCat},
+    {id:'panda',   emoji:'🐼', name:'Panda',   build:buildPanda},
+  ];
+  let selectedCharId = localStorage.getItem('hopRushCharacter') || 'chicken';
+  if(!CHARACTERS.find(c=>c.id===selectedCharId)) selectedCharId = 'chicken';
 
-      // ---------- roadside bazaar shops (Pakistani street-market touch) ----------
-      function buildShop() {
-        const g = new THREE.Group();
-        const wallColor = pick(SHOP_WALL_COLORS);
-        const wall = box(1.6, 1.5, 1.3, wallColor);
-        wall.position.y = 0.75;
-        g.add(wall);
+  function rebuildPlayerMesh(){
+    if(player) scene.remove(player);
+    const def = CHARACTERS.find(c=>c.id===selectedCharId) || CHARACTERS[0];
+    player = def.build();
+    player.position.copy(playerPos);
+    player.rotation.y = facing;
+    scene.add(player);
+    const badge = document.getElementById('title-badge');
+    if(badge) badge.textContent = def.emoji + ' HOP RUSH';
+  }
 
-        // roof slab, overhangs the walls
-        const roof = box(1.85, 0.18, 1.55, 0x5a3a24);
-        roof.position.y = 1.59;
-        g.add(roof);
-
-        // striped awning (canopy) over the front, classic bazaar-shop look
-        const awningColor = pick(AWNING_COLORS.filter(c => c !== 0xffffff)) || 0xff5d5d;
-        for (let i = -2; i <= 2; i++) {
-          const stripe = box(0.32, 0.07, 0.6, i % 2 === 0 ? awningColor : 0xffffff);
-          stripe.position.set(i * 0.32, 1.25, 0.95);
-          stripe.rotation.x = -0.35;
-          stripe.castShadow = false;
-          g.add(stripe);
-        }
-
-        // signboard with a bright accent bar (stands in for painted shop signage)
-        const sign = box(1.55, 0.32, 0.06, 0x1b2a2f);
-        sign.position.set(0, 1.36, 0.68);
-        const signAccent = box(1.35, 0.14, 0.05, pick(AWNING_COLORS));
-        signAccent.position.set(0, 1.36, 0.71);
-        g.add(sign, signAccent);
-
-        // doorway + small window
-        const door = box(0.48, 0.9, 0.09, 0x3a2410);
-        door.position.set(-0.32, 0.45, 0.66);
-        const win = box(0.5, 0.5, 0.09, 0x9fe0ff);
-        win.position.set(0.42, 0.6, 0.66);
-        const winFrame = box(0.58, 0.58, 0.05, 0xffffff);
-        winFrame.position.set(0.42, 0.6, 0.63);
-        g.add(door, winFrame, win);
-
-        // stacked goods crate out front (fruit/veg stall touch)
-        const crate = box(0.5, 0.32, 0.4, 0xd9a85c);
-        crate.position.set(0.2, 0.16, 1.15);
-        const crate2 = box(0.34, 0.22, 0.34, pick([0xff6f61, 0x3fae6a, 0xffce54]));
-        crate2.position.set(0.2, 0.42, 1.15);
-        g.add(crate, crate2);
-
-        g.traverse(o => { if (o.isMesh) { o.receiveShadow = true; } });
-        return g;
-      }
-
-      function buildRickshaw() {
-        const g = new THREE.Group();
-        const bodyColor = pick([0x3fae6a, 0xffce54, 0x5aa9e6]);
-        const cabin = box(0.7, 0.55, 0.6, 0xffe08a);
-        cabin.position.y = 0.5;
-        const hood = box(0.72, 0.4, 0.62, bodyColor);
-        hood.position.set(0, 0.9, -0.1);
-        const canopy = box(0.76, 0.06, 0.66, bodyColor);
-        canopy.position.set(0, 1.15, 0.05);
-        const frontWheel = box(0.14, 0.3, 0.1, 0x2a2a2a);
-        frontWheel.position.set(0, 0.15, 0.34);
-        const backWheelL = box(0.14, 0.3, 0.1, 0x2a2a2a);
-        backWheelL.position.set(-0.3, 0.15, -0.25);
-        const backWheelR = box(0.14, 0.3, 0.1, 0x2a2a2a);
-        backWheelR.position.set(0.3, 0.15, -0.25);
-        g.add(cabin, hood, canopy, frontWheel, backWheelL, backWheelR);
-        g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-        return g;
-      }
-
-      // taller, simpler background building — fills out the skyline behind the shop line
-      function buildBackBuilding() {
-        const g = new THREE.Group();
-        const h = 2.2 + Math.random() * 1.6;
-        const wallColor = pick([0xd8b28a, 0xc9a878, 0xe0c9a0, 0xb99a72, 0xcbb090]);
-        const wall = box(1.9, h, 1.6, wallColor);
-        wall.position.y = h / 2;
-        g.add(wall);
-        const roof = box(2.05, 0.14, 1.75, 0x8a5a3a);
-        roof.position.y = h + 0.07;
-        g.add(roof);
-        // window grid
-        const rowsN = Math.max(2, Math.floor(h / 0.55));
-        for (let ry = 0; ry < rowsN; ry++) {
-          for (let rx = -1; rx <= 1; rx++) {
-            if (Math.random() < 0.2) continue;
-            const win = box(0.34, 0.34, 0.05, 0xffe89a);
-            win.position.set(rx * 0.55, 0.5 + ry * 0.55, 0.81);
-            win.castShadow = false;
-            g.add(win);
-          }
-        }
-        g.traverse(o => { if (o.isMesh) { o.receiveShadow = true; } });
-        return g;
-      }
-
-      function buildRoadsideShops(row, group) {
-        // skip the very first buffer rows so the start feels open
-        if (row.index <= 1) return;
-        const frontX = (HALF + 1) * LANE_W + 0.5;
-        const backX = frontX + 2.1;
-        for (const side of [-1, 1]) {
-          // front-of-street shop line: face inward toward the road (local +z faces the road)
-          const faceIn = side > 0 ? -Math.PI / 2 : Math.PI / 2;
-          if (Math.random() > 0.12) { // dense — shops line almost every row on both sides
-            const deco = Math.random() < 0.15 ? buildRickshaw() : buildShop();
-            deco.position.x = side * frontX;
-            deco.position.z = (Math.random() - 0.5) * 0.5;
-            deco.rotation.y = faceIn;
-            group.add(deco);
-          }
-          // background skyline building, slightly further out and taller
-          if (Math.random() > 0.35) {
-            const back = buildBackBuilding();
-            back.position.x = side * backX;
-            back.position.z = (Math.random() - 0.5) * 0.6;
-            back.rotation.y = faceIn;
-            group.add(back);
-          }
-        }
-      }
-
-      // ---------- mangoes (stamina pickups) ----------
-      function buildMango() {
-        const g = new THREE.Group();
-        const body = new THREE.Mesh(
-          new THREE.SphereGeometry(0.26, 10, 8),
-          new THREE.MeshLambertMaterial({ color: 0xffb400 })
-        );
-        body.scale.set(1, 0.85, 1.2);
-        body.position.y = 0.3;
-        const blush = new THREE.Mesh(
-          new THREE.SphereGeometry(0.15, 8, 6),
-          new THREE.MeshLambertMaterial({ color: 0xff5d3d })
-        );
-        blush.scale.set(1, 0.8, 1.1);
-        blush.position.set(0.1, 0.36, 0.14);
-        const stem = box(0.06, 0.14, 0.06, 0x3f9e4d);
-        stem.position.set(0, 0.58, 0.06);
-        g.add(body, blush, stem);
-        g.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
-        return g;
-      }
-
-      function spawnMango(row, group) {
-        if (row.index <= 1) return; // keep the start clear
-        if (Math.random() > 0.4) return; // ~40% of eligible rows get a mango
-        const tx = Math.floor(Math.random() * COLS) - HALF;
-        if (row.type === 'grass' && row.occupied.has(tx)) return; // don't bury it in a tree
-        const mango = buildMango();
-        mango.position.set(tx * LANE_W, 0, 0);
-        group.add(mango);
-        mangoes.push({ mesh: mango, row, x: tx, collected: false, bobOffset: Math.random() * Math.PI * 2 });
-      }
-
-      function makeRow(index) {
-        // decide row type based on index, with grass buffer near start
-        let type;
-        if (index <= 1) { type = 'grass'; }
-        else {
-          const r = Math.random();
-          // avoid 3 water rows in a row without a break (riverStreak)
-          if (riverStreak >= 3) { type = 'grass'; riverStreak = 0; }
-          else if (r < 0.34) { type = 'road'; riverStreak = 0; }
-          else if (r < 0.62) { type = 'water'; riverStreak++; }
-          else { type = 'grass'; riverStreak = 0; }
-        }
-
-        const row = { index, type, dir: Math.random() < 0.5 ? 1 : -1, speed: 0.035 + Math.random() * 0.05, occupied: new Set() };
-        const group = new THREE.Group();
-        group.position.z = -index * LANE_W;
-
-        if (type === 'grass') {
-          const g = box(COLS * LANE_W + LANE_W, 1, LANE_W, GRASS_COLORS[index % 2]);
-          g.position.y = -0.5;
-          group.add(g);
-          // occasional decorative tree/rock (avoid center column start rows)
-          if (index > 1 && Math.random() < 0.35) {
-            const tx = (Math.floor(Math.random() * COLS) - HALF);
-            const trunk = box(0.3, 0.6, 0.3, 0x8a5a3a);
-            trunk.position.set(tx * LANE_W, 0.3, 0);
-            const leaves = box(1.1, 1.1, 1.1, 0x3f9e4d);
-            leaves.position.set(tx * LANE_W, 1.05, 0);
-            group.add(trunk, leaves);
-            row.occupied.add(tx); // block that tile
-          }
-        } else if (type === 'road') {
-          const g = box(COLS * LANE_W + LANE_W, 0.9, LANE_W, ROAD_COLOR);
-          g.position.y = -0.55;
-          group.add(g);
-          // lane markings
-          for (let i = -HALF; i <= HALF; i++) {
-            const dash = box(0.6, 0.92, 0.15, 0xdedede);
-            dash.position.set(i * LANE_W, -0.55, 0);
-            dash.castShadow = false;
-            group.add(dash);
-          }
-          // curb strips along both edges — makes road boundary unmistakable
-          for (const zEdge of [LANE_W / 2 - 0.07, -LANE_W / 2 + 0.07]) {
-            const curb = box(COLS * LANE_W + LANE_W, 0.14, 0.14, CURB_COLOR);
-            curb.position.set(0, -0.03, zEdge);
-            curb.castShadow = false;
-            group.add(curb);
-          }
-          spawnRoadObstacles(row, group);
-        } else if (type === 'water') {
-          const g = box(COLS * LANE_W + LANE_W, 0.7, LANE_W, WATER_COLOR, true);
-          g.position.y = -0.45;
-          g.receiveShadow = false;
-          group.add(g);
-          // foam edges so water reads clearly against road/grass
-          for (const zEdge of [LANE_W / 2 - 0.1, -LANE_W / 2 + 0.1]) {
-            const foam = box(COLS * LANE_W + LANE_W, 0.08, 0.16, FOAM_COLOR, true);
-            foam.position.set(0, -0.1, zEdge);
-            foam.castShadow = false; foam.receiveShadow = false;
-            group.add(foam);
-          }
-          spawnLogs(row, group);
-        }
-
-        // roadside shops line BOTH sides of the street, every row, bazaar-style
-        buildRoadsideShops(row, group);
-        // mango pickups on solid ground (not on drifting water logs)
-        if (type !== 'water') spawnMango(row, group);
-
-        worldGroup.add(group);
-        rows.push(row);
-        rowGroups.set(index, group);
-      }
-
-      function vehicleColor() {
-        const cols = [0xe45757, 0xf2c14e, 0x5aa9e6, 0xffffff, 0xff8a3d, 0x9b7ede];
-        return cols[Math.floor(Math.random() * cols.length)];
-      }
-
-      function spawnRoadObstacles(row, group) {
-        const useAnimals = Math.random() < 0.32;
-        const count = 2 + Math.floor(Math.random() * 2);
-        const spacing = (COLS * LANE_W) / count;
-        for (let i = 0; i < count; i++) {
-          let mesh, halfLen, speedMul;
-          if (useAnimals) {
-            const type = ANIMAL_TYPES[Math.floor(Math.random() * ANIMAL_TYPES.length)];
-            const built = buildAnimalMesh(type);
-            mesh = built.mesh;
-            halfLen = built.halfLen;
-            speedMul = 0.5;
-          } else {
-            const isTruck = Math.random() < 0.25;
-            const len = isTruck ? 2.6 : 1.6;
-            mesh = box(len, 0.9, 1.5, vehicleColor());
-            mesh.position.y = 0.1;
-            const cab = box(0.7, 0.4, 1.5, 0xdff1ff);
-            cab.position.set(len * 0.28 * row.dir * -1, 0.55, 0);
-            mesh.add(cab);
-            halfLen = len / 2;
-            speedMul = isTruck ? 0.8 : 1;
-          }
-          const startX = (-HALF * LANE_W) + i * spacing + Math.random() * spacing * 0.4;
-          mesh.position.x = startX;
-          if (row.dir < 0) mesh.rotation.y = Math.PI;
-          group.add(mesh);
-          vehicles.push({ mesh, group, row, speed: row.speed * speedMul * row.dir, halfLen });
-        }
-      }
-
-      function spawnLogs(row, group) {
-        // Dense, evenly-tiled logs: every segment of the river is mostly covered so
-        // there's always a log within a short hop's reach — no permanent gaps.
-        const totalWidth = COLS * LANE_W + LANE_W;
-        const count = 5 + Math.floor(Math.random() * 2); // 5-6 logs per row
-        const segment = totalWidth / count;
-        for (let i = 0; i < count; i++) {
-          const len = segment * (0.72 + Math.random() * 0.22); // fills 72-94% of its segment
-          const mesh = box(len, 0.5, 1.6, 0x9a6a3f);
-          mesh.position.y = -0.28;
-          const segCenter = -totalWidth / 2 + segment * (i + 0.5);
-          const slack = (segment - len) * 0.5;
-          mesh.position.x = segCenter + (Math.random() * 2 - 1) * slack;
-          group.add(mesh);
-          vehicles.push({ mesh, group, row, speed: row.speed * 0.7 * row.dir, halfLen: len / 2, isLog: true });
-        }
-      }
-
-      function clearRow(index) {
-        const group = rowGroups.get(index);
-        if (group) { worldGroup.remove(group); }
-        rowGroups.delete(index);
-        vehicles = vehicles.filter(v => v.row.index !== index);
-        mangoes = mangoes.filter(m => m.row.index !== index);
-        rows = rows.filter(r => r.index !== index);
-      }
-
-      // ---------- player ----------
-      rebuildPlayerMesh();
-
-      function resetGame() {
-        // clear world
-        for (const idx of Array.from(rowGroups.keys())) clearRow(idx);
-        rows = []; vehicles = []; mangoes = []; riverStreak = 0;
-
-        applyEnvironment(ENVIRONMENTS[Math.floor(Math.random() * ENVIRONMENTS.length)]);
-
-        for (let i = 0; i <= 22; i++) makeRow(i);
-
-        playerX = 0; playerZ = 0;
-        playerPos.set(0, 0.5, 0);
-        playerTarget.copy(playerPos);
-        hopT = 1;
-        facing = 0; targetFacing = 0;
-        onLog = null;
-        alive = true;
-        score = 0;
-        stamina = STAMINA_MAX;
-        updateScoreHUD();
-        updateStaminaHUD();
+  function renderCharGrid(){
+    const grid = document.getElementById('charGrid');
+    grid.innerHTML = '';
+    for(const c of CHARACTERS){
+      const btn = document.createElement('button');
+      btn.className = 'charBtn' + (c.id===selectedCharId ? ' selected' : '');
+      btn.innerHTML = `<div class="charEmoji">${c.emoji}</div><div class="charName">${c.name}</div>`;
+      btn.addEventListener('click', ()=>{
+        selectedCharId = c.id;
+        localStorage.setItem('hopRushCharacter', c.id);
+        renderCharGrid();
         rebuildPlayerMesh();
-      }
-
-      function ensureRowsAhead() {
-        let maxIdx = 0;
-        for (const r of rows) maxIdx = Math.max(maxIdx, r.index);
-        while (maxIdx < playerZ + 22) {
-          maxIdx++;
-          makeRow(maxIdx);
-        }
-        // cull behind
-        for (const r of rows.slice()) {
-          if (r.index < playerZ - 6) clearRow(r.index);
-        }
-      }
-
-      function rowAt(z) { return rows.find(r => r.index === z); }
-
-      function tileBlocked(x, z) {
-        const row = rowAt(z);
-        if (!row) return false;
-        if (row.type === 'grass' && row.occupied.has(Math.round(x))) return true;
-        return false;
-      }
-
-      function collectMangoAt(z, x) {
-        const rx = Math.round(x);
-        for (const m of mangoes) {
-          if (m.collected || m.row.index !== z || m.x !== rx) continue;
-          m.collected = true;
-          m.mesh.visible = false;
-          stamina = Math.min(STAMINA_MAX, stamina + MANGO_RESTORE);
-          updateStaminaHUD();
-        }
-      }
-
-      function tryMove(dx, dz) {
-        if (!alive) return;
-        const nz = playerZ + dz;
-        const nx = playerX + dx;
-        if (Math.abs(nx) > HALF) return; // world edge
-        if (nz < playerZ) { /* allow moving back but not before start */ if (nz < 0) return; }
-        if (tileBlocked(nx, nz)) return;
-
-        hopFrom.copy(playerPos);
-        // snap to grid when landing on solid ground so log-drift doesn't accumulate
-        const landRow = rowAt(nz);
-        playerX = (landRow && landRow.type !== 'water') ? Math.round(nx) : nx;
-        playerZ = nz;
-        playerTarget.set(playerX * LANE_W, 0.5, -playerZ * LANE_W);
-        hopT = 0;
-
-        updateFacingFromDelta(dx, dz);
-        collectMangoAt(playerZ, playerX);
-
-        if (playerZ > score) { score = playerZ; updateScoreHUD(); }
-
-        // hopping burns stamina — mangoes are the only way to top it back up
-        stamina = Math.max(0, stamina - STAMINA_PER_HOP);
-        updateStaminaHUD();
-        if (stamina <= 0) { die('starved'); return; }
-
-        ensureRowsAhead();
-      }
-
-      function updateFacingFromDelta(dx, dz) {
-        // world: forward (increasing playerZ) maps to -Z in three space
-        const dirX = dx;
-        const dirZ = -dz;
-        if (dirX === 0 && dirZ === 0) return;
-        targetFacing = Math.atan2(dirX, dirZ);
-      }
-
-      function updateScoreHUD() {
-        document.getElementById('score').textContent = score;
-        if (score > best) { best = score; localStorage.setItem('hopRushBest', String(best)); }
-        document.getElementById('best').textContent = 'BEST ' + best;
-      }
-
-      function updateStaminaHUD() {
-        const pct = Math.max(0, Math.min(100, Math.round(stamina)));
-        document.getElementById('staminaBarFill').style.width = pct + '%';
-        document.getElementById('staminaPct').textContent = pct + '%';
-        const fill = document.getElementById('staminaBarFill');
-        if (pct < 25) fill.style.background = 'linear-gradient(90deg,#ff5d5d,#b83f3f)';
-        else if (pct < 55) fill.style.background = 'linear-gradient(90deg,#ffce54,#ff8a3d)';
-        else fill.style.background = 'linear-gradient(90deg,#8ee06b,#4fae4f)';
-      }
-
-      // ---------- leaderboard ----------
-      function loadLeaderboard() {
-        try { return JSON.parse(localStorage.getItem('hopRushLeaderboard') || '[]'); }
-        catch (e) { return []; }
-      }
-      function qualifiesForLeaderboard(scoreVal) {
-        if (scoreVal <= 0) return false;
-        const list = loadLeaderboard();
-        if (list.length < 10) return true;
-        return scoreVal > list[list.length - 1].score;
-      }
-      function addToLeaderboard(name, scoreVal, charId) {
-        const list = loadLeaderboard();
-        list.push({ name: name || 'Runner', score: scoreVal, character: charId, date: new Date().toISOString().slice(0, 10) });
-        list.sort((a, b) => b.score - a.score);
-        localStorage.setItem('hopRushLeaderboard', JSON.stringify(list.slice(0, 10)));
-      }
-      function escapeHtml(s) {
-        return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-      }
-      function renderLeaderboardList() {
-        const list = loadLeaderboard();
-        const ol = document.getElementById('leaderboardList');
-        ol.innerHTML = '';
-        if (list.length === 0) {
-          ol.innerHTML = '<li class="empty">No scores yet — go play!</li>';
-          return;
-        }
-        list.forEach((entry, i) => {
-          const emoji = (CHARACTERS.find(c => c.id === entry.character) || {}).emoji || '🐔';
-          const li = document.createElement('li');
-          li.innerHTML = `<span><span class="lbRank">${i + 1}.</span>${emoji} ${escapeHtml(entry.name)}</span><span class="lbScore">${entry.score}</span>`;
-          ol.appendChild(li);
-        });
-      }
-      function exportLeaderboardCSV() {
-        const list = loadLeaderboard();
-        let csv = 'Rank,Name,Score,Character,Date\n';
-        list.forEach((e, i) => {
-          csv += `${i + 1},${String(e.name).replace(/,/g, ' ')},${e.score},${e.character},${e.date}\n`;
-        });
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'hop-rush-leaderboard.csv';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-
-      // ---------- overlay view state ----------
-      let lastMenuView = 'menu';
-      function setView(view) {
-        document.getElementById('overlay').classList.remove('hidden');
-        const charSelect = document.getElementById('charSelect');
-        const nameEntry = document.getElementById('nameEntry');
-        const savedMsg = document.getElementById('savedMsg');
-        const leaderboardPanel = document.getElementById('leaderboardPanel');
-        const playBtn = document.getElementById('playBtn');
-        const leaderboardBtn = document.getElementById('leaderboardBtn');
-        const hint = document.getElementById('hint');
-        const deathReason = document.getElementById('deathReason');
-
-        charSelect.classList.add('hidden');
-        nameEntry.classList.add('hidden');
-        savedMsg.classList.add('hidden');
-        leaderboardPanel.classList.add('hidden');
-        playBtn.classList.remove('hidden');
-        leaderboardBtn.classList.remove('hidden');
-        hint.classList.remove('hidden');
-        deathReason.classList.add('hidden');
-
-        if (view === 'menu') {
-          lastMenuView = 'menu';
-          charSelect.classList.remove('hidden');
-          playBtn.textContent = 'PLAY';
-          renderCharGrid();
-        } else if (view === 'dead') {
-          lastMenuView = 'dead';
-          charSelect.classList.remove('hidden');
-          playBtn.textContent = 'PLAY AGAIN';
-          renderCharGrid();
-          deathReason.textContent = lastDeathReason === 'starved' ? '🥭 Ran out of stamina!' : '💥 Got flattened!';
-          deathReason.classList.remove('hidden');
-          if (qualifiesForLeaderboard(score)) {
-            nameEntry.classList.remove('hidden');
-          }
-        } else if (view === 'leaderboard') {
-          leaderboardPanel.classList.remove('hidden');
-          playBtn.classList.add('hidden');
-          leaderboardBtn.classList.add('hidden');
-          hint.classList.add('hidden');
-          renderLeaderboardList();
-        }
-      }
-
-      function die(reason) {
-        if (!alive) return;
-        alive = false;
-        lastDeathReason = reason || 'squashed';
-        document.getElementById('lastScore').textContent = score;
-        if (score > best) { best = score; localStorage.setItem('hopRushBest', String(best)); }
-        document.getElementById('bestScore').textContent = best;
-        setView('dead');
-      }
-
-      // ---------- input ----------
-      const keyMap = {
-        ArrowUp: [0, 1], KeyW: [0, 1],
-        ArrowDown: [0, -1], KeyS: [0, -1],
-        ArrowLeft: [-1, 0], KeyA: [-1, 0],
-        ArrowRight: [1, 0], KeyD: [1, 0],
-      };
-      window.addEventListener('keydown', (e) => {
-        if (keyMap[e.code]) {
-          e.preventDefault();
-          if (!started) { startGame(); }
-          tryMove(keyMap[e.code][0], keyMap[e.code][1]);
-        }
       });
+      grid.appendChild(btn);
+    }
+  }
 
-      function bindHold(id, dx, dz) {
-        const el = document.getElementById(id);
-        el.addEventListener('pointerdown', (e) => {
-          e.preventDefault();
-          if (!started) { startGame(); }
-          tryMove(dx, dz);
-        });
+  // ---------- farm animal traffic ----------
+  function buildQuadruped(o){
+    const g = new THREE.Group();
+    const body = box(o.bodyLen, o.bodyH, o.bodyD, o.bodyColor);
+    body.position.y = o.bodyY;
+    const head = box(o.headSize, o.headSize, o.headSize, o.headColor||o.bodyColor);
+    head.position.set(o.bodyLen/2 + o.headSize*0.35, o.bodyY + o.headSize*0.15, 0);
+    g.add(body, head);
+    for(const sx of [-1,1]){
+      for(const sz of [-1,1]){
+        const leg = box(0.16, o.legH, 0.16, o.legColor||0x3a2a1a);
+        leg.position.set(sx*o.bodyLen*0.3, o.bodyY-o.bodyH/2-o.legH/2, sz*o.bodyD*0.32);
+        g.add(leg);
       }
-      bindHold('btn-up', 0, 1);
-      bindHold('btn-down', 0, -1);
-      bindHold('btn-left', -1, 0);
-      bindHold('btn-right', 1, 0);
-
-      // swipe controls
-      let touchStart = null;
-      const swipeZone = document.getElementById('swipe-zone');
-      swipeZone.addEventListener('pointerdown', (e) => { touchStart = { x: e.clientX, y: e.clientY }; });
-      swipeZone.addEventListener('pointerup', (e) => {
-        if (!touchStart) return;
-        const dx = e.clientX - touchStart.x;
-        const dy = e.clientY - touchStart.y;
-        touchStart = null;
-        const absX = Math.abs(dx), absY = Math.abs(dy);
-        if (Math.max(absX, absY) < 24) return; // tap, ignore
-        if (!started) { startGame(); }
-        if (absX > absY) { tryMove(dx > 0 ? 1 : -1, 0); }
-        else { tryMove(0, dy > 0 ? -1 : 1); }
-      });
-
-      document.getElementById('playBtn').addEventListener('click', startGame);
-      document.getElementById('leaderboardBtn').addEventListener('click', () => setView('leaderboard'));
-      document.getElementById('closeLeaderboardBtn').addEventListener('click', () => setView(lastMenuView));
-      document.getElementById('exportCsvBtn').addEventListener('click', exportLeaderboardCSV);
-      document.getElementById('saveScoreBtn').addEventListener('click', () => {
-        const input = document.getElementById('nameInput');
-        const name = (input.value || 'Runner').trim().slice(0, 12) || 'Runner';
-        addToLeaderboard(name, score, selectedCharId);
-        input.value = '';
-        document.getElementById('nameEntry').classList.add('hidden');
-        document.getElementById('savedMsg').classList.remove('hidden');
-      });
-
-      function startGame() {
-        document.getElementById('overlay').classList.add('hidden');
-        started = true;
-        resetGame();
+    }
+    if(o.ears){
+      for(const ex of [-1,1]){
+        const ear = box(o.earSize[0], o.earSize[1], o.earSize[2], o.earColor||o.headColor||o.bodyColor);
+        ear.position.set(o.bodyLen/2 + o.headSize*0.15, o.bodyY + o.headSize*0.7, ex*o.headSize*0.28);
+        ear.rotation.z = ex*(o.earTilt||0);
+        g.add(ear);
       }
+    }
+    const tail = box(0.13,0.13,o.tailLen||0.45, o.bodyColor);
+    tail.position.set(-o.bodyLen/2-0.14, o.bodyY+0.08, 0);
+    g.add(tail);
+    if(o.patches){
+      for(const p of o.patches){
+        const patch = box(p[0],p[1],0.06, 0x2a2a2a);
+        patch.position.set(p[2], o.bodyY+p[3], o.bodyD/2);
+        g.add(patch);
+      }
+    }
+    if(o.mane){
+      const mane = box(0.5, o.headSize*0.9, 0.14, 0x2a1a10);
+      mane.position.set(o.bodyLen/2 - 0.1, o.bodyY + o.headSize*0.7, 0);
+      g.add(mane);
+    }
+    g.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;}});
+    return g;
+  }
 
-      // ---------- main loop ----------
-      let last = performance.now();
-      function animate(now) {
-        requestAnimationFrame(animate);
-        const dt = Math.min(now - last, 40); last = now;
-        const dtScale = dt / 16.67;
+  const ANIMAL_DEFS = {
+    cow:    { bodyLen:1.6, bodyH:0.9, bodyD:0.85, bodyY:0.55, headSize:0.5, legH:0.5,
+              bodyColor:0xf5f0e6, headColor:0xf5f0e6, legColor:0x3a3a3a, tailLen:0.6,
+              ears:true, earSize:[0.26,0.14,0.28], earTilt:0.3,
+              patches:[[0.5,0.3,0.2,0.25],[0.4,0.3,-0.3,-0.15]] },
+    dog:    { bodyLen:1.05, bodyH:0.5, bodyD:0.45, bodyY:0.38, headSize:0.4, legH:0.34,
+              bodyColor:0xc98a4b, headColor:0xc98a4b, legColor:0x8a5a2f, tailLen:0.4,
+              ears:true, earSize:[0.22,0.3,0.1], earTilt:0.35 },
+    cat:    { bodyLen:0.85, bodyH:0.42, bodyD:0.38, bodyY:0.3, headSize:0.32, legH:0.26,
+              bodyColor:0x8a8a8a, headColor:0x8a8a8a, legColor:0x5a5a5a, tailLen:0.5,
+              ears:true, earSize:[0.16,0.18,0.08], earTilt:0.45 },
+    horse:  { bodyLen:1.7, bodyH:1.0, bodyD:0.55, bodyY:0.75, headSize:0.45, legH:0.75,
+              bodyColor:0x6b4226, headColor:0x6b4226, legColor:0x3a2414, tailLen:0.7,
+              ears:true, earSize:[0.1,0.22,0.08], earTilt:0.2, mane:true },
+    donkey: { bodyLen:1.4, bodyH:0.85, bodyD:0.5, bodyY:0.6, headSize:0.42, legH:0.6,
+              bodyColor:0x9a9084, headColor:0x9a9084, legColor:0x5a5248, tailLen:0.5,
+              ears:true, earSize:[0.16,0.55,0.14], earTilt:0.18 },
+  };
+  // cats and dogs are the most common street traffic (weighted pool), other animals rarer
+  const ANIMAL_TYPES = ['cat','cat','cat','dog','dog','dog','cow','horse','donkey'];
 
-        // move vehicles/logs
-        for (const v of vehicles) {
-          v.mesh.position.x += v.speed * dtScale;
-          const limit = HALF * LANE_W + 4;
-          if (v.mesh.position.x > limit) v.mesh.position.x = -limit;
-          if (v.mesh.position.x < -limit) v.mesh.position.x = limit;
+  function buildAnimalMesh(type){
+    const def = ANIMAL_DEFS[type];
+    const mesh = buildQuadruped(def);
+    return { mesh, halfLen: def.bodyLen/2 + 0.15 };
+  }
+
+  // ---------- roadside bazaar shops (Pakistani street-market touch) ----------
+  function buildShop(){
+    const g = new THREE.Group();
+    const wallColor = pick(SHOP_WALL_COLORS);
+    const wall = box(1.6,1.5,1.3, wallColor);
+    wall.position.y = 0.75;
+    g.add(wall);
+
+    // roof slab, overhangs the walls
+    const roof = box(1.85,0.18,1.55, 0x5a3a24);
+    roof.position.y = 1.59;
+    g.add(roof);
+
+    // striped awning (canopy) over the front, classic bazaar-shop look
+    const awningColor = pick(AWNING_COLORS.filter(c=>c!==0xffffff)) || 0xff5d5d;
+    for(let i=-2;i<=2;i++){
+      const stripe = box(0.32,0.07,0.6, i%2===0?awningColor:0xffffff);
+      stripe.position.set(i*0.32, 1.25, 0.95);
+      stripe.rotation.x = -0.35;
+      stripe.castShadow = false;
+      g.add(stripe);
+    }
+
+    // signboard with a bright accent bar (stands in for painted shop signage)
+    const sign = box(1.55,0.32,0.06, 0x1b2a2f);
+    sign.position.set(0,1.36,0.68);
+    const signAccent = box(1.35,0.14,0.05, pick(AWNING_COLORS));
+    signAccent.position.set(0,1.36,0.71);
+    g.add(sign, signAccent);
+
+    // doorway + small window
+    const door = box(0.48,0.9,0.09,0x3a2410);
+    door.position.set(-0.32,0.45,0.66);
+    const win = box(0.5,0.5,0.09,0x9fe0ff);
+    win.position.set(0.42,0.6,0.66);
+    const winFrame = box(0.58,0.58,0.05,0xffffff);
+    winFrame.position.set(0.42,0.6,0.63);
+    g.add(door, winFrame, win);
+
+    // stacked goods crate out front (fruit/veg stall touch)
+    const crate = box(0.5,0.32,0.4, 0xd9a85c);
+    crate.position.set(0.2,0.16,1.15);
+    const crate2 = box(0.34,0.22,0.34, pick([0xff6f61,0x3fae6a,0xffce54]));
+    crate2.position.set(0.2,0.42,1.15);
+    g.add(crate, crate2);
+
+    g.traverse(o=>{ if(o.isMesh){ o.receiveShadow = true; } });
+    return g;
+  }
+
+  function buildRickshaw(){
+    const g = new THREE.Group();
+    const bodyColor = pick([0x3fae6a, 0xffce54, 0x5aa9e6]);
+    const cabin = box(0.7,0.55,0.6, 0xffe08a);
+    cabin.position.y = 0.5;
+    const hood = box(0.72,0.4,0.62, bodyColor);
+    hood.position.set(0,0.9,-0.1);
+    const canopy = box(0.76,0.06,0.66, bodyColor);
+    canopy.position.set(0,1.15,0.05);
+    const frontWheel = box(0.14,0.3,0.1,0x2a2a2a);
+    frontWheel.position.set(0,0.15,0.34);
+    const backWheelL = box(0.14,0.3,0.1,0x2a2a2a);
+    backWheelL.position.set(-0.3,0.15,-0.25);
+    const backWheelR = box(0.14,0.3,0.1,0x2a2a2a);
+    backWheelR.position.set(0.3,0.15,-0.25);
+    g.add(cabin, hood, canopy, frontWheel, backWheelL, backWheelR);
+    g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+    return g;
+  }
+
+  // taller, simpler background building — fills out the skyline behind the shop line
+  function buildBackBuilding(){
+    const g = new THREE.Group();
+    const h = 2.2 + Math.random()*1.6;
+    const wallColor = pick([0xd8b28a, 0xc9a878, 0xe0c9a0, 0xb99a72, 0xcbb090]);
+    const wall = box(1.9, h, 1.6, wallColor);
+    wall.position.y = h/2;
+    g.add(wall);
+    const roof = box(2.05, 0.14, 1.75, 0x8a5a3a);
+    roof.position.y = h + 0.07;
+    g.add(roof);
+    // window grid
+    const rowsN = Math.max(2, Math.floor(h/0.55));
+    for(let ry=0; ry<rowsN; ry++){
+      for(let rx=-1; rx<=1; rx++){
+        if(Math.random()<0.2) continue;
+        const win = box(0.34,0.34,0.05, 0xffe89a);
+        win.position.set(rx*0.55, 0.5+ry*0.55, 0.81);
+        win.castShadow = false;
+        g.add(win);
+      }
+    }
+    g.traverse(o=>{ if(o.isMesh){ o.receiveShadow = true; } });
+    return g;
+  }
+
+  function buildRoadsideShops(row, group){
+    // skip the very first buffer rows so the start feels open
+    if(row.index <= 1) return;
+    const frontX = (HALF+1)*LANE_W + 0.5;
+    const backX = frontX + 2.1;
+    for(const side of [-1,1]){
+      // front-of-street shop line: face inward toward the road (local +z faces the road)
+      const faceIn = side>0 ? -Math.PI/2 : Math.PI/2;
+      if(Math.random() > 0.12){ // dense — shops line almost every row on both sides
+        const deco = Math.random() < 0.15 ? buildRickshaw() : buildShop();
+        deco.position.x = side*frontX;
+        deco.position.z = (Math.random()-0.5)*0.5;
+        deco.rotation.y = faceIn;
+        group.add(deco);
+      }
+      // background skyline building, slightly further out and taller
+      if(Math.random() > 0.35){
+        const back = buildBackBuilding();
+        back.position.x = side*backX;
+        back.position.z = (Math.random()-0.5)*0.6;
+        back.rotation.y = faceIn;
+        group.add(back);
+      }
+    }
+  }
+
+  // ---------- mangoes (stamina pickups) ----------
+  function buildMango(){
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.SphereGeometry(0.26,10,8),
+      new THREE.MeshLambertMaterial({color:0xffb400})
+    );
+    body.scale.set(1,0.85,1.2);
+    body.position.y = 0.3;
+    const blush = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15,8,6),
+      new THREE.MeshLambertMaterial({color:0xff5d3d})
+    );
+    blush.scale.set(1,0.8,1.1);
+    blush.position.set(0.1,0.36,0.14);
+    const stem = box(0.06,0.14,0.06,0x3f9e4d);
+    stem.position.set(0,0.58,0.06);
+    g.add(body,blush,stem);
+    g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
+    return g;
+  }
+
+  function spawnMango(row, group){
+    if(row.index<=1) return; // keep the start clear
+    const tries = Math.random() < 0.25 ? 2 : 1; // sometimes drop two on the same row
+    for(let t=0;t<tries;t++){
+      if(Math.random() > 0.7) continue; // ~70% chance per attempt — mangoes are plentiful now
+      const tx = Math.floor(Math.random()*COLS)-HALF;
+      if(row.type==='grass' && row.occupied.has(tx)) continue; // don't bury it in a tree
+      if(mangoes.some(m=>m.row.index===row.index && m.x===tx)) continue; // no stacking on the same tile
+      const mango = buildMango();
+      mango.position.set(tx*LANE_W, 0, 0);
+      group.add(mango);
+      mangoes.push({mesh:mango, row, x:tx, collected:false, bobOffset:Math.random()*Math.PI*2});
+    }
+  }
+
+  function makeRow(index){
+    // decide row type based on index, with grass buffer near start
+    let type;
+    if(index <= 1){ type = 'grass'; }
+    else {
+      const r = Math.random();
+      // avoid 3 water rows in a row without a break (riverStreak)
+      if(riverStreak >= 3){ type = 'grass'; riverStreak=0; }
+      else if(r < 0.34){ type='road'; riverStreak=0; }
+      else if(r < 0.62){ type='water'; riverStreak++; }
+      else { type='grass'; riverStreak=0; }
+    }
+
+    const row = {index, type, dir: Math.random()<0.5?1:-1, speed: 0.035+Math.random()*0.05, occupied:new Set()};
+    const group = new THREE.Group();
+    group.position.z = -index*LANE_W;
+
+    if(type==='grass'){
+      const g = box(COLS*LANE_W+LANE_W, 1, LANE_W, GRASS_COLORS[index%2]);
+      g.position.y = -0.5;
+      group.add(g);
+      // decorative trees/rocks — denser greenery, occasionally two per row
+      if(index>1){
+        const treeCount = Math.random() < 0.6 ? (Math.random()<0.3 ? 2 : 1) : 0;
+        for(let t=0;t<treeCount;t++){
+          let tx = (Math.floor(Math.random()*COLS)-HALF);
+          if(row.occupied.has(tx)) continue;
+          const trunk = box(0.3,0.6,0.3,0x8a5a3a);
+          trunk.position.set(tx*LANE_W,0.3,0);
+          const leaves = box(1.1,1.1,1.1,0x3f9e4d);
+          leaves.position.set(tx*LANE_W,1.05,0);
+          group.add(trunk,leaves);
+          row.occupied.add(tx); // block that tile
         }
+      }
+    } else if(type==='road'){
+      const g = box(COLS*LANE_W+LANE_W, 0.9, LANE_W, ROAD_COLOR);
+      g.position.y = -0.55;
+      group.add(g);
+      // lane markings
+      for(let i=-HALF;i<=HALF;i++){
+        const dash = box(0.6,0.92,0.15,0xdedede);
+        dash.position.set(i*LANE_W,-0.55,0);
+        dash.castShadow=false;
+        group.add(dash);
+      }
+      // curb strips along both edges — makes road boundary unmistakable
+      for(const zEdge of [LANE_W/2-0.07, -LANE_W/2+0.07]){
+        const curb = box(COLS*LANE_W+LANE_W, 0.14, 0.14, CURB_COLOR);
+        curb.position.set(0,-0.03,zEdge);
+        curb.castShadow=false;
+        group.add(curb);
+      }
+      spawnRoadObstacles(row, group);
+    } else if(type==='water'){
+      const g = box(COLS*LANE_W+LANE_W, 0.7, LANE_W, WATER_COLOR, true);
+      g.position.y = -0.45;
+      g.receiveShadow = false;
+      group.add(g);
+      // foam edges so water reads clearly against road/grass
+      for(const zEdge of [LANE_W/2-0.1, -LANE_W/2+0.1]){
+        const foam = box(COLS*LANE_W+LANE_W, 0.08, 0.16, FOAM_COLOR, true);
+        foam.position.set(0,-0.1,zEdge);
+        foam.castShadow=false; foam.receiveShadow=false;
+        group.add(foam);
+      }
+      spawnLogs(row, group);
+    }
 
-        // bob & spin uncollected mangoes so they read as pickups
-        for (const m of mangoes) {
-          if (m.collected) continue;
-          m.mesh.rotation.y += 0.02 * dtScale;
-          m.mesh.position.y = 0.1 + Math.sin(now / 300 + m.bobOffset) * 0.08;
+    // roadside shops line BOTH sides of the street, every row, bazaar-style
+    buildRoadsideShops(row, group);
+    // mango pickups on solid ground (not on drifting water logs)
+    if(type!=='water') spawnMango(row, group);
+
+    worldGroup.add(group);
+    rows.push(row);
+    rowGroups.set(index, group);
+  }
+
+  function vehicleColor(){
+    const cols = [0xe45757,0xf2c14e,0x5aa9e6,0xffffff,0xff8a3d,0x9b7ede,0x4fae4f,0xff8fb1];
+    return cols[Math.floor(Math.random()*cols.length)];
+  }
+
+  function buildVehicleStyle(style, dir){
+    let len,h,d,color;
+    if(style==='truck'){ len=2.6; h=0.9; d=1.5; color=vehicleColor(); }
+    else if(style==='bus'){ len=3.4; h=1.15; d=1.5; color=pick([0xffce54,0xff8a3d,0x5aa9e6,0x3fae6a]); }
+    else if(style==='van'){ len=2.0; h=1.0; d=1.5; color=vehicleColor(); }
+    else { len=1.6; h=0.75; d=1.5; color=vehicleColor(); } // sedan
+    const mesh = box(len,h,d,color);
+    mesh.position.y = 0.1;
+    if(style==='bus'){
+      for(let i=-1;i<=1;i++){
+        const win = box(0.55,0.32,0.04,0x9fe0ff);
+        win.position.set(i*0.95, h*0.55, d/2+0.02);
+        win.castShadow = false;
+        mesh.add(win);
+      }
+      const stripe = box(len*0.94,0.14,0.04,0xffffff);
+      stripe.position.set(0, h*0.15, d/2+0.02);
+      stripe.castShadow = false;
+      mesh.add(stripe);
+    } else {
+      const cab = box(0.7,0.4,d, 0xdff1ff);
+      cab.position.set(len*0.28*dir*-1, h*0.6, 0);
+      mesh.add(cab);
+    }
+    const speedMul = style==='truck'?0.8 : style==='bus'?0.6 : style==='van'?0.9 : 1;
+    return { mesh, halfLen: len/2, speedMul };
+  }
+
+  function buildBicycle(){
+    const g = new THREE.Group();
+    const riderColor = pick([0xff6f61,0x3fae6a,0xffce54,0x5aa9e6,0xff8fb1]);
+    const frame = box(0.85,0.05,0.06, 0x2a2a2a); frame.position.y=0.34;
+    const seatPost = box(0.05,0.22,0.05,0x2a2a2a); seatPost.position.set(-0.24,0.47,0);
+    const seat = box(0.16,0.05,0.09,0x1b2a2f); seat.position.set(-0.27,0.58,0);
+    const handle = box(0.05,0.18,0.05,0x2a2a2a); handle.position.set(0.34,0.47,0);
+    const bar = box(0.22,0.05,0.05,0x2a2a2a); bar.position.set(0.34,0.56,0);
+    const wheelF = box(0.46,0.46,0.05,0x111111); wheelF.position.set(0.38,0.23,0);
+    const wheelB = box(0.46,0.46,0.05,0x111111); wheelB.position.set(-0.38,0.23,0);
+    const torso = box(0.2,0.36,0.16, riderColor); torso.position.set(-0.05,0.72,0); torso.rotation.z=-0.3;
+    const head = box(0.19,0.19,0.19, 0xffd9b3); head.position.set(0.06,0.96,0);
+    const legs = box(0.15,0.28,0.15, 0x3a3a3a); legs.position.set(-0.1,0.43,0);
+    g.add(frame,seatPost,seat,handle,bar,wheelF,wheelB,torso,head,legs);
+    g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+    return g;
+  }
+
+  function buildPedestrian(){
+    const g = new THREE.Group();
+    const shirtColor = pick([0xff6f61,0x3fae6a,0xffce54,0x5aa9e6,0xff8fb1,0x9b7ede]);
+    const pantsColor = pick([0x2a2a2a,0x3a4a5a,0x5a3a2a]);
+    const torso = box(0.32,0.38,0.2, shirtColor); torso.position.y=0.6;
+    const head = box(0.25,0.25,0.25, 0xffd9b3); head.position.y=0.95;
+    const legs = box(0.28,0.38,0.19, pantsColor); legs.position.y=0.22;
+    const armL = box(0.1,0.32,0.11, shirtColor); armL.position.set(-0.21,0.6,0);
+    const armR = box(0.1,0.32,0.11, shirtColor); armR.position.set(0.21,0.6,0);
+    g.add(torso,head,legs,armL,armR);
+    g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+    return g;
+  }
+
+  // weighted mix — sedans still most common, but the street feels lively now
+  const ROAD_CATEGORIES = ['sedan','sedan','sedan','truck','van','bus','animal','animal','bicycle','bicycle','pedestrian'];
+
+  function spawnRoadObstacles(row, group){
+    const count = 3 + Math.floor(Math.random()*2);
+    const spacing = (COLS*LANE_W)/count;
+    for(let i=0;i<count;i++){
+      const category = pick(ROAD_CATEGORIES);
+      let mesh, halfLen, speedMul;
+      if(category==='animal'){
+        const type = ANIMAL_TYPES[Math.floor(Math.random()*ANIMAL_TYPES.length)];
+        const built = buildAnimalMesh(type);
+        mesh = built.mesh; halfLen = built.halfLen; speedMul = 0.5;
+      } else if(category==='bicycle'){
+        mesh = buildBicycle(); halfLen = 0.5; speedMul = 1.25;
+      } else if(category==='pedestrian'){
+        mesh = buildPedestrian(); halfLen = 0.32; speedMul = 0.55;
+      } else {
+        const built = buildVehicleStyle(category, row.dir);
+        mesh = built.mesh; halfLen = built.halfLen; speedMul = built.speedMul;
+      }
+      const startX = (-HALF*LANE_W) + i*spacing + Math.random()*spacing*0.4;
+      mesh.position.x = startX;
+      if(row.dir<0) mesh.rotation.y = Math.PI;
+      group.add(mesh);
+      vehicles.push({mesh, group, row, speed: row.speed*speedMul*row.dir, halfLen});
+    }
+  }
+
+  function spawnLogs(row, group){
+    // Dense, evenly-tiled logs: every segment of the river is mostly covered so
+    // there's always a log within a short hop's reach — no permanent gaps.
+    const totalWidth = COLS*LANE_W + LANE_W;
+    const count = 5 + Math.floor(Math.random()*2); // 5-6 logs per row
+    const segment = totalWidth/count;
+    for(let i=0;i<count;i++){
+      const len = segment*(0.72 + Math.random()*0.22); // fills 72-94% of its segment
+      const mesh = box(len,0.5,1.6, 0x9a6a3f);
+      mesh.position.y = -0.28;
+      const segCenter = -totalWidth/2 + segment*(i+0.5);
+      const slack = (segment-len)*0.5;
+      mesh.position.x = segCenter + (Math.random()*2-1)*slack;
+      group.add(mesh);
+      vehicles.push({mesh, group, row, speed: row.speed*0.7*row.dir, halfLen: len/2, isLog:true});
+    }
+  }
+
+  function clearRow(index){
+    const group = rowGroups.get(index);
+    if(group){ worldGroup.remove(group); }
+    rowGroups.delete(index);
+    vehicles = vehicles.filter(v=>v.row.index!==index);
+    mangoes = mangoes.filter(m=>m.row.index!==index);
+    rows = rows.filter(r=>r.index!==index);
+  }
+
+  // ---------- player ----------
+  rebuildPlayerMesh();
+
+  function resetGame(){
+    // clear world
+    for(const idx of Array.from(rowGroups.keys())) clearRow(idx);
+    rows = []; vehicles = []; mangoes = []; riverStreak=0;
+
+    applyEnvironment(ENVIRONMENTS[Math.floor(Math.random()*ENVIRONMENTS.length)]);
+    weatherTimer = 0;
+
+    for(let i=0;i<=22;i++) makeRow(i);
+
+    playerX = 0; playerZ = 0;
+    playerPos.set(0,0.5,0);
+    playerTarget.copy(playerPos);
+    hopT = 1;
+    facing = 0; targetFacing = 0;
+    onLog = null;
+    alive = true;
+    score = 0;
+    stamina = STAMINA_MAX;
+    updateScoreHUD();
+    updateStaminaHUD();
+    rebuildPlayerMesh();
+  }
+
+  function ensureRowsAhead(){
+    let maxIdx = 0;
+    for(const r of rows) maxIdx = Math.max(maxIdx, r.index);
+    while(maxIdx < playerZ + 22){
+      maxIdx++;
+      makeRow(maxIdx);
+    }
+    // cull behind
+    for(const r of rows.slice()){
+      if(r.index < playerZ - 6) clearRow(r.index);
+    }
+  }
+
+  function rowAt(z){ return rows.find(r=>r.index===z); }
+
+  function tileBlocked(x,z){
+    const row = rowAt(z);
+    if(!row) return false;
+    if(row.type==='grass' && row.occupied.has(Math.round(x))) return true;
+    return false;
+  }
+
+  function collectMangoAt(z,x){
+    const rx = Math.round(x);
+    for(const m of mangoes){
+      if(m.collected || m.row.index!==z || m.x!==rx) continue;
+      m.collected = true;
+      m.mesh.visible = false;
+      stamina = Math.min(STAMINA_MAX, stamina + MANGO_RESTORE);
+      updateStaminaHUD();
+    }
+  }
+
+  function tryMove(dx,dz){
+    if(!alive) return;
+    const nz = playerZ + dz;
+    const nx = playerX + dx;
+    if(Math.abs(nx) > HALF) return; // world edge
+    if(nz < playerZ) { /* allow moving back but not before start */ if(nz<0) return; }
+    if(tileBlocked(nx,nz)) return;
+
+    hopFrom.copy(playerPos);
+    // snap to grid when landing on solid ground so log-drift doesn't accumulate
+    const landRow = rowAt(nz);
+    playerX = (landRow && landRow.type!=='water') ? Math.round(nx) : nx;
+    playerZ = nz;
+    playerTarget.set(playerX*LANE_W, 0.5, -playerZ*LANE_W);
+    hopT = 0;
+
+    updateFacingFromDelta(dx,dz);
+    collectMangoAt(playerZ, playerX);
+
+    if(playerZ > score){ score = playerZ; updateScoreHUD(); }
+
+    // hopping burns stamina — mangoes are the only way to top it back up
+    stamina = Math.max(0, stamina - STAMINA_PER_HOP);
+    updateStaminaHUD();
+    if(stamina<=0){ die('starved'); return; }
+
+    ensureRowsAhead();
+  }
+
+  function updateFacingFromDelta(dx,dz){
+    // world: forward (increasing playerZ) maps to -Z in three space
+    const dirX = dx;
+    const dirZ = -dz;
+    if(dirX===0 && dirZ===0) return;
+    targetFacing = Math.atan2(dirX, dirZ);
+  }
+
+  function updateScoreHUD(){
+    document.getElementById('score').textContent = score;
+    if(score>best){ best = score; localStorage.setItem('hopRushBest', String(best)); }
+    document.getElementById('best').textContent = 'BEST ' + best;
+  }
+
+  function updateStaminaHUD(){
+    const pct = Math.max(0, Math.min(100, Math.round(stamina)));
+    document.getElementById('staminaBarFill').style.width = pct + '%';
+    document.getElementById('staminaPct').textContent = pct + '%';
+    const fill = document.getElementById('staminaBarFill');
+    if(pct < 25) fill.style.background = 'linear-gradient(90deg,#ff5d5d,#b83f3f)';
+    else if(pct < 55) fill.style.background = 'linear-gradient(90deg,#ffce54,#ff8a3d)';
+    else fill.style.background = 'linear-gradient(90deg,#8ee06b,#4fae4f)';
+  }
+
+  // ---------- leaderboard ----------
+  function loadLeaderboard(){
+    try{ return JSON.parse(localStorage.getItem('hopRushLeaderboard')||'[]'); }
+    catch(e){ return []; }
+  }
+  function qualifiesForLeaderboard(scoreVal){
+    if(scoreVal<=0) return false;
+    const list = loadLeaderboard();
+    if(list.length<10) return true;
+    return scoreVal > list[list.length-1].score;
+  }
+  function addToLeaderboard(name, scoreVal, charId){
+    const list = loadLeaderboard();
+    list.push({name: name||'Runner', score: scoreVal, character: charId, date: new Date().toISOString().slice(0,10)});
+    list.sort((a,b)=>b.score-a.score);
+    localStorage.setItem('hopRushLeaderboard', JSON.stringify(list.slice(0,10)));
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function renderLeaderboardList(){
+    const list = loadLeaderboard();
+    const ol = document.getElementById('leaderboardList');
+    ol.innerHTML = '';
+    if(list.length===0){
+      ol.innerHTML = '<li class="empty">No scores yet — go play!</li>';
+      return;
+    }
+    list.forEach((entry,i)=>{
+      const emoji = (CHARACTERS.find(c=>c.id===entry.character)||{}).emoji || '🐔';
+      const li = document.createElement('li');
+      li.innerHTML = `<span><span class="lbRank">${i+1}.</span>${emoji} ${escapeHtml(entry.name)}</span><span class="lbScore">${entry.score}</span>`;
+      ol.appendChild(li);
+    });
+  }
+  function exportLeaderboardCSV(){
+    const list = loadLeaderboard();
+    let csv = 'Rank,Name,Score,Character,Date\n';
+    list.forEach((e,i)=>{
+      csv += `${i+1},${String(e.name).replace(/,/g,' ')},${e.score},${e.character},${e.date}\n`;
+    });
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'hop-rush-leaderboard.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- overlay view state ----------
+  let lastMenuView = 'menu';
+  function setView(view){
+    document.getElementById('overlay').classList.remove('hidden');
+    const charSelect = document.getElementById('charSelect');
+    const nameEntry = document.getElementById('nameEntry');
+    const savedMsg = document.getElementById('savedMsg');
+    const leaderboardPanel = document.getElementById('leaderboardPanel');
+    const playBtn = document.getElementById('playBtn');
+    const leaderboardBtn = document.getElementById('leaderboardBtn');
+    const hint = document.getElementById('hint');
+    const deathReason = document.getElementById('deathReason');
+
+    charSelect.classList.add('hidden');
+    nameEntry.classList.add('hidden');
+    savedMsg.classList.add('hidden');
+    leaderboardPanel.classList.add('hidden');
+    playBtn.classList.remove('hidden');
+    leaderboardBtn.classList.remove('hidden');
+    hint.classList.remove('hidden');
+    deathReason.classList.add('hidden');
+
+    if(view==='menu'){
+      lastMenuView = 'menu';
+      charSelect.classList.remove('hidden');
+      playBtn.textContent = 'PLAY';
+      renderCharGrid();
+    } else if(view==='dead'){
+      lastMenuView = 'dead';
+      charSelect.classList.remove('hidden');
+      playBtn.textContent = 'PLAY AGAIN';
+      renderCharGrid();
+      deathReason.textContent = lastDeathReason==='starved' ? '🥭 Ran out of stamina!' : '💥 Got flattened!';
+      deathReason.classList.remove('hidden');
+      if(qualifiesForLeaderboard(score)){
+        nameEntry.classList.remove('hidden');
+      }
+    } else if(view==='leaderboard'){
+      leaderboardPanel.classList.remove('hidden');
+      playBtn.classList.add('hidden');
+      leaderboardBtn.classList.add('hidden');
+      hint.classList.add('hidden');
+      renderLeaderboardList();
+    }
+  }
+
+  function die(reason){
+    if(!alive) return;
+    alive = false;
+    lastDeathReason = reason || 'squashed';
+    document.getElementById('lastScore').textContent = score;
+    if(score>best){ best=score; localStorage.setItem('hopRushBest', String(best)); }
+    document.getElementById('bestScore').textContent = best;
+    setView('dead');
+  }
+
+  // ---------- input ----------
+  const keyMap = {
+    ArrowUp:[0,1], KeyW:[0,1],
+    ArrowDown:[0,-1], KeyS:[0,-1],
+    ArrowLeft:[-1,0], KeyA:[-1,0],
+    ArrowRight:[1,0], KeyD:[1,0],
+  };
+  window.addEventListener('keydown', (e)=>{
+    if(keyMap[e.code]){
+      e.preventDefault();
+      if(!started){ startGame(); }
+      tryMove(keyMap[e.code][0], keyMap[e.code][1]);
+    }
+  });
+
+  function bindHold(id,dx,dz){
+    const el = document.getElementById(id);
+    el.addEventListener('pointerdown', (e)=>{
+      e.preventDefault();
+      if(!started){ startGame(); }
+      tryMove(dx,dz);
+    });
+  }
+  bindHold('btn-up',0,1);
+  bindHold('btn-down',0,-1);
+  bindHold('btn-left',-1,0);
+  bindHold('btn-right',1,0);
+
+  // swipe controls
+  let touchStart = null;
+  const swipeZone = document.getElementById('swipe-zone');
+  swipeZone.addEventListener('pointerdown', (e)=>{ touchStart = {x:e.clientX,y:e.clientY}; });
+  swipeZone.addEventListener('pointerup', (e)=>{
+    if(!touchStart) return;
+    const dx = e.clientX - touchStart.x;
+    const dy = e.clientY - touchStart.y;
+    touchStart = null;
+    const absX=Math.abs(dx), absY=Math.abs(dy);
+    if(Math.max(absX,absY) < 24) return; // tap, ignore
+    if(!started){ startGame(); }
+    if(absX>absY){ tryMove(dx>0?1:-1,0); }
+    else { tryMove(0, dy>0?-1:1); }
+  });
+
+  document.getElementById('playBtn').addEventListener('click', startGame);
+  document.getElementById('leaderboardBtn').addEventListener('click', ()=> setView('leaderboard'));
+  document.getElementById('closeLeaderboardBtn').addEventListener('click', ()=> setView(lastMenuView));
+  document.getElementById('exportCsvBtn').addEventListener('click', exportLeaderboardCSV);
+  document.getElementById('saveScoreBtn').addEventListener('click', ()=>{
+    const input = document.getElementById('nameInput');
+    const name = (input.value||'Runner').trim().slice(0,12) || 'Runner';
+    addToLeaderboard(name, score, selectedCharId);
+    input.value = '';
+    document.getElementById('nameEntry').classList.add('hidden');
+    document.getElementById('savedMsg').classList.remove('hidden');
+  });
+
+  function startGame(){
+    document.getElementById('overlay').classList.add('hidden');
+    started = true;
+    resetGame();
+  }
+
+  // ---------- main loop ----------
+  let last = performance.now();
+  function animate(now){
+    requestAnimationFrame(animate);
+    const dt = Math.min(now-last, 40); last = now;
+    const dtScale = dt/16.67;
+
+    // move vehicles/logs
+    for(const v of vehicles){
+      v.mesh.position.x += v.speed*dtScale;
+      const limit = HALF*LANE_W + 4;
+      if(v.mesh.position.x > limit) v.mesh.position.x = -limit;
+      if(v.mesh.position.x < -limit) v.mesh.position.x = limit;
+    }
+
+    // bob & spin uncollected mangoes so they read as pickups
+    for(const m of mangoes){
+      if(m.collected) continue;
+      m.mesh.rotation.y += 0.02*dtScale;
+      m.mesh.position.y = 0.1 + Math.sin(now/300 + m.bobOffset)*0.08;
+    }
+
+    // weather/time-of-day rotates every 15s while a run is in progress
+    if(started && alive){
+      weatherTimer += dt;
+      if(weatherTimer >= WEATHER_CHANGE_MS){
+        weatherTimer = 0;
+        let next = currentEnv;
+        while(next === currentEnv && ENVIRONMENTS.length > 1){
+          next = ENVIRONMENTS[Math.floor(Math.random()*ENVIRONMENTS.length)];
         }
+        applyEnvironment(next);
+      }
+    }
 
-        // ambient weather effects (run whenever visible, not just mid-run)
-        if (starsGroup.visible) {
-          starsGroup.position.set(playerPos.x, 0, -playerZ * LANE_W);
-        }
-        if (rainGroup.visible) {
-          rainGroup.position.set(playerPos.x, 0, -playerZ * LANE_W);
-          const pos = rainGroup.geometry.attributes.position;
-          for (let i = 0; i < pos.count; i++) {
-            let y = pos.getY(i) - 0.7 * dtScale;
-            if (y < 0) y = 28 + Math.random() * 4;
-            pos.setY(i, y);
-          }
-          pos.needsUpdate = true;
-        }
+    // ambient weather effects (run whenever visible, not just mid-run)
+    if(starsGroup.visible){
+      starsGroup.position.set(playerPos.x, 0, -playerZ*LANE_W);
+    }
+    if(rainGroup.visible){
+      rainGroup.position.set(playerPos.x, 0, -playerZ*LANE_W);
+      const pos = rainGroup.geometry.attributes.position;
+      for(let i=0;i<pos.count;i++){
+        let y = pos.getY(i) - 0.7*dtScale;
+        if(y<0) y = 28 + Math.random()*4;
+        pos.setY(i,y);
+      }
+      pos.needsUpdate = true;
+    }
 
-        if (started && alive) {
-          // hop animation
-          if (hopT < 1) {
-            hopT = Math.min(1, hopT + dt / 140);
-            const t = hopT;
-            playerPos.lerpVectors(hopFrom, playerTarget, t);
-            playerPos.y = 0.5 + Math.sin(t * Math.PI) * 0.6;
-          } else {
-            playerPos.copy(playerTarget);
-          }
-          // smooth facing
-          let df = targetFacing - facing;
-          while (df > Math.PI) df -= Math.PI * 2;
-          while (df < -Math.PI) df += Math.PI * 2;
-          facing += df * 0.25;
+    if(started && alive){
+      // hop animation
+      if(hopT < 1){
+        hopT = Math.min(1, hopT + dt/140);
+        const t = hopT;
+        playerPos.lerpVectors(hopFrom, playerTarget, t);
+        playerPos.y = 0.5 + Math.sin(t*Math.PI)*0.6;
+      } else {
+        playerPos.copy(playerTarget);
+      }
+      // smooth facing
+      let df = targetFacing - facing;
+      while(df>Math.PI) df-=Math.PI*2;
+      while(df<-Math.PI) df+=Math.PI*2;
+      facing += df*0.25;
 
-          player.position.copy(playerPos);
-          player.rotation.y = facing;
+      player.position.copy(playerPos);
+      player.rotation.y = facing;
 
-          // collisions with vehicles on current row (only when settled-ish, use continuous check)
-          const curRow = rowAt(playerZ);
-          if (curRow) {
-            if (curRow.type === 'road') {
-              for (const v of vehicles) {
-                if (v.row.index !== playerZ) continue;
-                const dx = Math.abs(v.mesh.position.x - playerPos.x);
-                if (dx < (v.halfLen + 0.35)) {
-                  die();
-                }
-              }
-            } else if (curRow.type === 'water' && hopT >= 1) {
-              // must be on a log
-              let onAnyLog = false;
-              for (const v of vehicles) {
-                if (!v.isLog || v.row.index !== playerZ) continue;
-                const dx = Math.abs(v.mesh.position.x - playerPos.x);
-                if (dx < v.halfLen) {
-                  onAnyLog = true;
-                  playerPos.x += v.speed * dtScale;
-                  playerTarget.x = playerPos.x;
-                  playerX = playerPos.x / LANE_W;
-                }
-              }
-              if (!onAnyLog) { die(); }
-              else if (Math.abs(playerPos.x) > HALF * LANE_W + 1) { die(); }
+      // collisions with vehicles on current row (only when settled-ish, use continuous check)
+      const curRow = rowAt(playerZ);
+      if(curRow){
+        if(curRow.type==='road'){
+          for(const v of vehicles){
+            if(v.row.index!==playerZ) continue;
+            const dx = Math.abs(v.mesh.position.x - playerPos.x);
+            if(dx < (v.halfLen+0.35)){
+              die();
             }
           }
-
-          // camera follow
-          const camTargetPos = new THREE.Vector3(playerPos.x * 0.4, 0, -playerZ * LANE_W).add(CAM_OFFSET);
-          camera.position.lerp(camTargetPos, 0.08);
-          const lookTarget = new THREE.Vector3(playerPos.x * 0.4, 0, -playerZ * LANE_W);
-          camera.lookAt(lookTarget);
+        } else if(curRow.type==='water' && hopT>=1){
+          // must be on a log
+          let onAnyLog = false;
+          for(const v of vehicles){
+            if(!v.isLog || v.row.index!==playerZ) continue;
+            const dx = Math.abs(v.mesh.position.x - playerPos.x);
+            if(dx < v.halfLen){
+              onAnyLog = true;
+              playerPos.x += v.speed*dtScale;
+              playerTarget.x = playerPos.x;
+              playerX = playerPos.x/LANE_W;
+            }
+          }
+          if(!onAnyLog){ die(); }
+          else if(Math.abs(playerPos.x) > HALF*LANE_W+1){ die(); }
         }
-
-        renderer.render(scene, camera);
       }
 
-      // initial idle world for background before play
-      for (let i = 0; i <= 22; i++) makeRow(i);
-      document.getElementById('bestScore').textContent = best;
-      updateStaminaHUD();
-      renderCharGrid();
-      requestAnimationFrame(animate);
-    })();
-  </script>
-</body>
+      // camera follow
+      const camTargetPos = new THREE.Vector3(playerPos.x*0.4, 0, -playerZ*LANE_W).add(CAM_OFFSET);
+      camera.position.lerp(camTargetPos, 0.08);
+      const lookTarget = new THREE.Vector3(playerPos.x*0.4, 0, -playerZ*LANE_W);
+      camera.lookAt(lookTarget);
+    }
 
+    renderer.render(scene, camera);
+  }
+
+  // initial idle world for background before play
+  for(let i=0;i<=22;i++) makeRow(i);
+  document.getElementById('bestScore').textContent = best;
+  updateStaminaHUD();
+  renderCharGrid();
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
 </html>
